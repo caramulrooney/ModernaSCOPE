@@ -131,9 +131,10 @@ namespace Ads1110 {
 using namespace Ads1110;
 
 
-const byte DEV_ADDR = 0x49;                            // I2C address of the ADS1110 (Change as needed)
+const byte DEV_ADDR = 0b1001001;                            // I2C address of the ADS1110 (Change as needed)
 
 ADS1110 ads1110(DEV_ADDR);
+    
 
 void setup() {
     Serial.begin(9600);
