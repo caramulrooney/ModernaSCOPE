@@ -36,15 +36,29 @@ void setup()
    Serial.begin(9600);
    // Initialize the wire library for I2C communication
    Wire.begin();
+   pinMode(D0, OUTPUT);
+   pinMode(D3, OUTPUT);
+   pinMode(D4, OUTPUT);
+   pinMode(D5, OUTPUT);
+   pinMode(D6, OUTPUT);
+   pinMode(D7, OUTPUT);
+   pinMode(D8, OUTPUT);
 }
 
 // Loop function
 void loop(){
-  //if (fHasLooped == false) {
+  //if (fHasLooped == false) { // Run loop once
     if (electrode == 1) { //Looking at one electrode at a time
     //for (int electrode = 0; electrode < 96; electrode++) { //Iterate through all electrodes
       Serial.println("Inside the loop");
       selectElectrode(electrode);
+      //digitalWrite(D0, LOW);
+      //digitalWrite(D3, LOW);
+      //digitalWrite(D4, LOW);
+      //digitalWrite(D5, LOW);
+      //digitalWrite(D6, LOW);
+      //digitalWrite(D7, LOW);
+      //digitalWrite(D8, LOW);
       
        // Request 3 bytes of data from the ADS1110 via I2C
        Wire.requestFrom(ads1110, 3);
@@ -79,7 +93,7 @@ void loop(){
 
        fHasLooped = true;
      }
-  //}
+  //} // Run loop once
 }
 
 void selectElectrode(int electrode){
