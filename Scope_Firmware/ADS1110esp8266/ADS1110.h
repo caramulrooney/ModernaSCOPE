@@ -130,7 +130,7 @@ __asm volatile ("nop");
 #define ADS1110_h
 
 // #if !defined(ARDUINO_ARCH_AVR)
-//     #error “The ADS1110 library only supports AVR processors.”
+//     #error "The ADS1110 library only supports AVR processors."
 // #endif
 
 #include <Arduino.h>
@@ -196,6 +196,7 @@ namespace Ads1110 {
             byte   getSampleRate();
             byte   getConMode();
             byte   getRes();
+            byte   _comBuffer;
             int    getVref();
             void   setGain(gain_t newGain);
             void   setSampleRate(sample_rate_t newRate);
@@ -211,7 +212,6 @@ namespace Ads1110 {
             byte   _devAddr;
             byte   _config;
             int    _vref;
-            byte   _comBuffer;
             byte   getConfig();
             void   setConfig(byte newConfig);
             // byte   findMinCode(sample_rate_t sampleRate);
