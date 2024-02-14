@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SimpleCLI.h>
 
+#include "argParse.h"
 #include "defines.h"
 #include "electrode.h"
 
@@ -27,12 +28,30 @@ void errorCallback(cmd_error *errorPtr) {
 String parseArgElectrode(cmd *cmdPtr, bool electrodes[]) {
     Command cmd(cmdPtr);
 
+    rangeSelectionType rangeType = HORIZONTAL;
+    Argument argSelection = cmd.getArgument("selection");
+    String selectionString = argSelection.getValue();
+    selectionString.toLowerCase();
+    switch (selectionString.charAt(0)) {
+        case 'h':
+            rangeType = HORIZONTAL;
+            break;
+        case 'v':
+            rangeType = VERTICAL;
+            break;
+        case 'e':
+            rangeType = EXCEL;
+            break;
+        default:
+            Serial.println("For selection type, please enter either h/orizontal, v/ertical, or e/xcel.");
+    }
+
     Argument argElectrode = cmd.getArgument("electrodes");
     String electrodeInput = argElectrode.getValue();
-    if (!parseElectrodeInput(electrodeInput, electrodes)) {
+    if (!parseElectrodeInput(electrodeInput, electrodes, rangeType)) {
         Serial.println("Could not parse electrode range.");
     }
-    return electrodeInput;
+    return electrodeInput;  // return the raw string
 }
 
 float parseArgPh(cmd *cmdPtr) {
@@ -66,6 +85,7 @@ void measureCallback(cmd *cmdPtr) {
     Argument argNow = cmd.getArgument("now");
     bool now = argNow.isSet();
 
+    printElectrodeRange(electrodes);
     Serial.println("Measuring electrodes " + electrodeInput);
 }
 
@@ -104,17 +124,21 @@ void setup() {
     cmdCalibrate = cli.addCommand("calibrate", calibrateCallback);
     cmdCalibrate.addPositionalArgument("p/H");
     cmdCalibrate.addArgument("e/lectrode/s", "all");
+    cmdCalibrate.addArgument("s/elect/ion", "h");
 
     cmdClearCalibration = cli.addCommand("calibrate", calibrateCallback);
     cmdClearCalibration.addArgument("p/H", "all");
     cmdClearCalibration.addArgument("e/lectrode/s", "all");
+    cmdClearCalibration.addArgument("s/elect/ion", "h");
 
     cmdShowCalibration = cli.addCommand("calibrate", calibrateCallback);
     cmdShowCalibration.addArgument("p/H", "all");
     cmdShowCalibration.addArgument("e/lectrode/s", "all");
+    cmdShowCalibration.addArgument("s/elect/ion", "h");
 
     cmdMeasure = cli.addCommand("measure", measureCallback);
     cmdMeasure.addArgument("e/lectrode/s", "all");
+    cmdMeasure.addArgument("s/elect/ion", "h");
     cmdMeasure.addArgument("t/ime/_steps", "1");
     cmdMeasure.addArgument("max_time", "120");
     cmdMeasure.addFlagArgument("n/ow");

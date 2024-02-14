@@ -4,16 +4,21 @@
 #include "argParse.h"
 #include "defines.h"
 
+String rowLetters = "abcdefgh";
+String numeric = "0123456789";
+
 void selectRange(unsigned int electrode1, unsigned int electrode2, bool electrodes[], rangeSelectionType rangeType) {
-    unsigned int row1 = electrode1 % N_COLUMNS;
-    unsigned int col1 = electrode1 / N_COLUMNS;
-    unsigned int row2 = electrode1 % N_COLUMNS;
-    unsigned int col2 = electrode1 / N_COLUMNS;
+    Serial.println("Electrode 1: " + String(electrode1) + ", Electrode 2: " + String(electrode2));
+    unsigned int row1 = min(electrode1, electrode2) / N_COLUMNS;
+    unsigned int col1 = min(electrode1, electrode2) % N_COLUMNS;
+    unsigned int row2 = max(electrode1, electrode2) / N_COLUMNS;
+    unsigned int col2 = max(electrode1, electrode2) % N_COLUMNS;
     for (unsigned int row = 0; row < N_ROWS; row++) {
         for (unsigned int col = 0; col < N_COLUMNS; col++) {
-            if ((rangeType == HORIZONTAL && ((row == row1 && col >= col1) || (row > row1 && row <= row2) || (row == row2 && col <= col2))) ||
-                (rangeType == VERTICAL && ((col == col1 && row >= row1) || (col > col1 && col <= col2) || (col == col2 && row <= row2))) ||
+            if ((rangeType == HORIZONTAL && ((row1 == row2 && row == row1 && col >= col1 && col <= col2) || (row1 != row2 && ((row == row1 && col >= col1) || (row > row1 && row < row2) || (row == row2 && col <= col2))))) ||
+                (rangeType == VERTICAL && ((col1 == col2 && col == col1 && row >= row1 && row <= row2) || (col1 != col2 && ((col == col1 && row >= row1) || (col > col1 && col < col2) || (col == col2 && row <= row2))))) ||
                 (rangeType == EXCEL && ((col >= col1 && row >= row1 && col <= col2 && row <= row2)))) {
+                Serial.println("Row = " + String(row) + ", Col = " + String(col));
                 electrodes[row * N_COLUMNS + col] = true;
             }
         }
@@ -32,13 +37,13 @@ bool parseBattleshipNotation(String input, unsigned int *returnElectrodeId) {
     // otherwise, try to parse it in battleship notation.
     int letterId = rowLetters.indexOf(input[0]);
     if (letterId < 0) {
-        Serial.println("Electrode notation not recognized.");
+        Serial.println("Electrode notation not recognized (1).");
         return false;
     }
     input.remove(0, 1);  // remove the first character in place
     int numberId = input.toInt();
     if (numberId <= 0 || numberId > N_COLUMNS) {
-        Serial.println("Electrode notation not recognized.");
+        Serial.println("Electrode notation not recognized (2).");
         return false;
     }
     int electrodeId = letterId * N_COLUMNS + numberId - 1;
@@ -72,9 +77,6 @@ bool parseElectrodeInput(String input, bool electrodes[], rangeSelectionType ran
             unsigned int electrodeId;
             if (parseBattleshipNotation(hyphenSplitter->getItemAtIndex(0), &electrodeId)) {
                 electrodes[electrodeId] = true;
-                Serial.print(electrodeId);
-                Serial.print(" ");
-                return true;
             } else {
                 return false;
             }
@@ -84,7 +86,7 @@ bool parseElectrodeInput(String input, bool electrodes[], rangeSelectionType ran
                 return false;
             }
             unsigned int electrode2;
-            if (!parseBattleshipNotation(hyphenSplitter->getItemAtIndex(0), &electrode2)) {
+            if (!parseBattleshipNotation(hyphenSplitter->getItemAtIndex(1), &electrode2)) {
                 return false;
             }
             selectRange(electrode1, electrode2, electrodes, rangeType);
@@ -96,4 +98,21 @@ bool parseElectrodeInput(String input, bool electrodes[], rangeSelectionType ran
     delete commaSplitter;
 
     return true;
+}
+
+String toBattleshipNotation(unsigned int electrode) {
+    String battleship = rowLetters.charAt(electrode / N_COLUMNS) + String(electrode % N_COLUMNS + 1);
+    battleship.toUpperCase();
+    return battleship;
+}
+
+void printElectrodeRange(bool electrodes[]) {
+    Serial.print("Selected electrodes: ");
+    for (unsigned int i = 0; i < N_ELECTRODES; i++) {
+        if (electrodes[i]) {
+            Serial.print(toBattleshipNotation(i));
+            Serial.print(", ");
+        }
+    }
+    Serial.println();
 }
