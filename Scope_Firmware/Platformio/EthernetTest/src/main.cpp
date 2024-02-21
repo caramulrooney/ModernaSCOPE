@@ -12,6 +12,7 @@
 */
 
 #include <Ethernet.h>  // Ethernet library v2 is required
+// #include <Ethernet2.h>
 #include <ModbusEthernet.h>
 #include <SPI.h>
 
@@ -40,10 +41,16 @@ void setup() {
     Serial.println("Hello, World!");
     Serial.println();
 
+    pinMode(SS, OUTPUT);
+    digitalWrite(SS, HIGH);
+
     Ethernet.init(5);         // SS pin
     Ethernet.begin(mac, ip);  // start the Ethernet connection
-    delay(1000);              // give the Ethernet shield a second to initialize
-    mb.server();              // Act as Modbus TCP server
+    Serial.print("Local IP is: ");
+    Serial.println(Ethernet.localIP());
+
+    delay(1000);  // give the Ethernet shield a second to initialize
+    mb.server();  // Act as Modbus TCP server
     // mb.addReg(HREG(100));     // Add Holding register #100
     mb.addCoil(CALLBACK_COIL);                  // Add Coil. The same as mb.addCoil(COIL_BASE, false, LEN)
     mb.onSetCoil(CALLBACK_COIL, onCoilChange);  // Add callback on Coil LED_COIL value set
