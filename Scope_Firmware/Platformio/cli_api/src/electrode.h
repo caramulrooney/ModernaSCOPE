@@ -1,5 +1,7 @@
-#include <Arduino.h>
 #pragma once
+#include <Arduino.h>
+
+#include "defines.h"
 
 /**
  * Calibrate electrodes with a standard pH buffer.
@@ -30,3 +32,36 @@ bool measurePh(float phValues[]);
  * @param voltages Return array to hold the voltage readings. `voltages` must have 96 elements, as all electrodes will be read.
  */
 bool measureVoltage(float voltages[]);
+
+typedef struct {
+    long epoch;                // epoch timestamp
+    float calibrationPh;       // applied to the electrode
+    float calibrationVoltage;  // measured in response
+    float temperature;         // measured
+    int calibrationId;         // round(10 * calibrationPh)
+    bool isValid;              // whether it has been assigned or deleted
+} calibrationDatum;
+
+class Calibration {
+   private:
+    calibrationDatum datums[MAX_CALIBRATION_DATUMS];
+
+   public:
+    unsigned int id;
+
+    Calibration();
+
+    bool addDatum(calibrationDatum* datum);
+
+    bool getDatum(int calibrationId, calibrationDatum* returnDatum);
+};
+
+class CalibrationHistory {
+   public:
+    Calibration calibrations[N_ELECTRODES];
+    Calibration oldCalibrations[N_ELECTRODES];
+
+    CalibrationHistory();
+
+    bool addDatum(unsigned int electrode, float pH, float voltage, float temperature);
+};
