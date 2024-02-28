@@ -1,25 +1,12 @@
 from prompt_toolkit import PromptSession
 import argparse
-import click
 
 session = PromptSession()
-
-parser = argparse.ArgumentParser(
-                    prog='ProgramName',
-                    description='What the program does',
-                    epilog='Text at the bottom of help')
-
-# parser.add_argument('filename')           # positional argument
-parser.add_argument('-c', '--count')      # option that takes a value
-parser.add_argument('-v', '--verbose',
-                    action='store_true')  # on/off flag
-
-a = parser.parse_args(["-c", "5"])
-# print(a)
 
 class Commands():
     commands = {}
     functions = {}
+
     def __init__(self):
         self.measure()
         self.evaluate("measure -c 8 -v")
@@ -39,15 +26,6 @@ class Commands():
             return inner
         return decorator
 
-    def parser(*args, **kwargs):
-        def decorator(func):
-            def inner(self, name):
-                self.commands[name] = argparse.ArgumentParser(*args, **kwargs)
-                # print(f"parser.")
-                self.functions[name] = func
-            return inner
-        return decorator
-
     def arg(*args, **kwargs):
         def decorator(func):
             def inner(self, name):
@@ -58,10 +36,20 @@ class Commands():
             return inner
         return decorator
 
+    def parser(*args, **kwargs):
+        def decorator(func):
+            def inner(self, name):
+                self.commands[name] = argparse.ArgumentParser(*args, **kwargs)
+                # print(f"parser.")
+                self.functions[name] = func
+            return inner
+        return decorator
+
+    # begin defining commands
 
     @command('measure')
-    @arg('-c', '--count')
-    @arg('-v', '--verbose', action='store_true')
+    @arg('-c', '--count', type = int)
+    @arg('-v', '--verbose', action = 'store_true')
     @parser(prog='ProgramName', description='What the program does', epilog='Text at the bottom of help')
     def measure(count, verbose):
         print(f"Inside of measure, {count=}, {verbose=}")
