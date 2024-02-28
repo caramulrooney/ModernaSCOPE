@@ -1,20 +1,25 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentError
 from sensor import Sensor
 SPLIT_CHARS = " "
 
 class Commands():
     def __init__(self):
-        self.parser = ArgumentParser(prog='ProgramName', description='Device controller command-line interface')
+        self.parser = ArgumentParser(prog="", exit_on_error = False, description =
+    """This is the pH sensor command-line interface. To run, type one of the positional arguments followed by parameters and flags as necessary. For example, try running `# measure -vn` to measure the voltages at each of the electrodes. Type any command with the -h flag to see the options for that command.""")
         self.subparsers = self.parser.add_subparsers()
         self.sensor = Sensor()
-        self.make_parsers()
+        self.make_parsers(exit_on_error = False)
 
     def execute(self, input):
-        args = self.parser.parse_args(input.split(SPLIT_CHARS)) # creates a namespace object
-        args.func(args) # call the function linked by set_defaults(func = func)
+        try:
+            args = self.parser.parse_args(input.split(SPLIT_CHARS)) # creates a namespace object
+        except (ArgumentError, SystemExit) as ex:
+            print(ex)
+        else:
+            args.func(args) # call the function linked by set_defaults(func = func)
 
-    def make_parsers(self):
-        measure_parser = self.subparsers.add_parser("measure", prog = "measure", description =
+    def make_parsers(self, exit_on_error = False):
+        measure_parser = self.subparsers.add_parser("measure", prog = "measure", exit_on_error = exit_on_error, description =
     """Measure pH of electrodes within a certain range once the measurements have
     settled. Silently run in the background until measurements are settled, then
     print the results in a tabular format.""")
@@ -25,7 +30,7 @@ class Commands():
         measure_parser.add_argument('-v', '--voltage_only', action = 'store_true', help = "Report voltage values, not pH values.")
         measure_parser.set_defaults(func = self.sensor.measure)
 
-        calibrate_parser  =  self.subparsers.add_parser("calibrate", description =
+        calibrate_parser  =  self.subparsers.add_parser("calibrate", exit_on_error = exit_on_error, description =
     """Calibrate electrodes with a standard pH buffer. Assume a standard buffer
     solution has already been applied to the specified electrodes. Store the current
     voltage for the specified electrodes in memory and use it as a comparison to
@@ -38,7 +43,7 @@ class Commands():
         calibrate_parser.add_argument('ph', type = float, help = "The pH of the buffer currently applied to the electrodes being calibrated.")      # option that takes a value
         calibrate_parser.set_defaults(func = self.sensor.calibrate)
 
-        show_calibration_parser = self.subparsers.add_parser("show_calibration", prog = "show_calibration", description =
+        show_calibration_parser = self.subparsers.add_parser("show_calibration", prog = "show_calibration", exit_on_error = exit_on_error, description =
     """Show calibrated voltage values for each calibrated electrode, along with the
     timestamp and temperature of each calibration.""")
         show_calibration_parser.add_argument('-e', '--electrodes', type = str, default = 'all', help = "Electrode range to show calibrated voltages for. Default is all 96 electrodes.")
@@ -46,9 +51,12 @@ class Commands():
         show_calibration_parser.add_argument('-s', '--sort_by_ph', action = 'store_true', help = "Sort values in ascending order of pH. Default is to sort by timestamp.")
         show_calibration_parser.set_defaults(func = self.sensor.show_calibration)
 
-        clear_calibration_parser = self.subparsers.add_parser("clear_calibration", prog = "clear_calibration", description =
+        clear_calibration_parser = self.subparsers.add_parser("clear_calibration", prog = "clear_calibration", exit_on_error = exit_on_error, description =
     """Clear the most recent calibration values for the specified electrodes.""")
         clear_calibration_parser.add_argument('-e', '--electrodes', type = str, default = 'all', help = "Electrode range to clear calibrated voltages for. Default is all 96 electrodes.")
         clear_calibration_parser.add_argument('-p', '--ph', type = float, help = "Clear the calibration voltage corresponding to a specified pH.")
         clear_calibration_parser.add_argument('-a', '--all', action = 'store_true', help = "Clear calibration voltages for all pH values for the specified electrodes.")
         clear_calibration_parser.set_defaults(func = self.sensor.clear_calibration)
+
+        quit_parser = self.subparsers.add_parser("quit", prog = "quit", exit_on_error = True, description = """Exit the program.""")
+        quit_parser.set_defaults(func = quit)
