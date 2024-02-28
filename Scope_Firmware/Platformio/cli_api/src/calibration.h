@@ -23,6 +23,8 @@ class Calibration {
     bool addDatum(calibrationDatum* datum);
 
     bool getDatum(int calibrationId, calibrationDatum* returnDatum);
+
+    void deleteDatum(int calibrationId);
 };
 
 class CalibrationHistory {
@@ -33,4 +35,8 @@ class CalibrationHistory {
     CalibrationHistory();
 
     bool addDatum(unsigned int electrode, float pH, float voltage, float temperature);
+
+    bool popDatum(unsigned int electrode, int calibrationId);
+
+    void prettyPrint();
 };

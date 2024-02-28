@@ -19,6 +19,7 @@ void calibrate(bool electrodes[], float pH) {
             calibrations.addDatum(i, pH, voltages[i], temperature);
         }
     }
+    calibrations.prettyPrint();
 }
 
 bool measurePh(float phValues[]) {
@@ -32,4 +33,9 @@ bool measurePh(float phValues[]) {
     return returnVal;
 }
 
-bool measureVoltage(float* voltages[]) { return true; }
+bool measureVoltage(float voltages[]) {
+    for (size_t i = 0; i < N_ELECTRODES; i++) {
+        voltages[i] = 0;
+    }
+    return true;  // TODO: return only if the voltages have settled
+}

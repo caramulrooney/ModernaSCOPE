@@ -1,5 +1,7 @@
 #include "calibration.h"
 
+#include "VariadicTable.h"
+
 int phToCalibrationId(float pH) {
     return int(pH * 10);
 }
@@ -38,6 +40,14 @@ bool Calibration::getDatum(int calibrationId, calibrationDatum* returnDatum) {
     return false;
 }
 
+void Calibration::deleteDatum(int calibrationId) {
+    for (size_t i = 0; i < MAX_CALIBRATION_DATUMS; i++) {
+        if (datums[i].isValid && datums[i].calibrationId == calibrationId) {
+            datums[i].isValid = false;
+        }
+    }
+}
+
 CalibrationHistory::CalibrationHistory() {
     for (unsigned int i = 0; i < N_ELECTRODES; i++) {
         calibrations[i].id = i;
@@ -63,4 +73,26 @@ bool CalibrationHistory::addDatum(unsigned int electrode, float pH, float voltag
         .calibrationId = calibrationId,
         .isValid = true};
     return calibrations[electrode].addDatum(&newDatum);
+}
+
+bool CalibrationHistory::popDatum(unsigned int electrode, int calibrationId) {
+    calibrations[electrode].deleteDatum(calibrationId);
+
+    // first, save the most recent datum into oldCalibrations
+    calibrationDatum oldDatum;
+    if (oldCalibrations[electrode].getDatum(calibrationId, &oldDatum)) {
+        calibrations[electrode].addDatum(&oldDatum);
+        return true;
+    }
+    return false;
+}
+
+void CalibrationHistory::prettyPrint() {
+    // VariadicTable<std::string, double, int, std::string> vt({"Name", "Weight", "Age", "Brother"}, 10);
+
+    // vt.addRow("Cody", 180.2, 40, "John");
+    // vt.addRow("David", 175.3, 38, "Andrew");
+    // vt.addRow("Robert", 140.3, 27, "Fande");
+
+    // vt.print(Serial);
 }

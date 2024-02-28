@@ -75,6 +75,7 @@ void calibrateCallback(cmd *cmdPtr) {
     String electrodeInput = parseArgElectrode(cmdPtr, electrodes);
 
     Serial.println("Calibrating electrodes " + electrodeInput);
+    calibrate(electrodes, pH);
 }
 
 void measureCallback(cmd *cmdPtr) {
