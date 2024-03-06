@@ -1,6 +1,6 @@
 import inspect
 from calibrations import CalibrationHistory
-from global_enums import Constants
+import constants
 
 def unpack_namespace(func):
     def inner(self, namespace):
@@ -18,7 +18,7 @@ class Sensor():
     calibrations = []
 
     def __init__(self):
-        for i in range(Constants.N_ELECTRODES):
+        for i in range(constants.N_ELECTRODES):
             self.calibrations.append(CalibrationHistory(i))
 
     def get_voltages(self): # TODO: get data from sensor via pySerial

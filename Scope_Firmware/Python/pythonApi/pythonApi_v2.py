@@ -1,6 +1,6 @@
 from prompt_toolkit import PromptSession
 from prompt_toolkit.lexers import PygmentsLexer
-from global_enums import init_text_art
+from constants import init_text_art
 from commands import Commands
 from lexer import CustomLexer
 

@@ -1,11 +1,10 @@
 from enum import Enum
 
-class Constants(Enum):
-    N_ELECTRODES = 96
-    N_COLUMNS = 12
-    N_ROWS = 8
-    ROW_LETTTERS = "ABCDEFGH"
-    COL_NUMBERS = "0123456789"
+N_ELECTRODES = 96
+N_COLUMNS = 12
+N_ROWS = 8
+ROW_LETTERS = "ABCDEFGH"
+COL_NUMBERS = "0123456789"
 
 class SelectionType(Enum):
     ROW_WISE = 0
