@@ -6,6 +6,7 @@
 #define NUM_ELECTRODES 96
 // #define DEBUG
 
+void setup_ads1110();
 void selectElectrode(int electrode_id);
 float calculateVoltage(int electrode, bool* status);
 
@@ -27,11 +28,29 @@ float calculateVoltage(int electrode, bool* status);
 int selectPins[] = {D0, D3, D4, D5, D6, D7, D8};
 float voltages[NUM_ELECTRODES];
 
+// configuration bits
+typedef struct {
+    bool ST_DRDY = 1;         // read value
+    bool PLACE_HOLDER_1 = 0;  // empty
+    bool PLACE_HOLDER_0 = 0;  // empty
+    bool SC_BIT = 0;          // 1: single conversion mode, 0: continuous conversion mode
+    bool DR_1 = 0;            // DR_1 DR_0
+    bool DR_0 = 0;            // 00: 240 Samples per second (SPS), 01: 60 SPS, 10: 30 SPS, 11: 15 SPS
+    bool PGA_1 = 0;           // PGA_1 PGA_0
+    bool PGA_0 = 1;           // 00: Gain of 1, 01: Gain of 2, 10: Gain of 4, 11: Gain of 8
+} config;
+
 // Declare variables for high byte, low byte, and configuration register
 byte highbyte, lowbyte, configRegister;
 
 void setup() {
     Serial.begin(115200);
+#ifdef DEBUG
+    Serial.println("");
+    Serial.println("Hello, World!");
+    Serial.println("");
+#endif
+
     // Initialize the wire library for I2C communication
     Wire.begin();
     pinMode(D0, OUTPUT);
@@ -41,6 +60,8 @@ void setup() {
     pinMode(D6, OUTPUT);
     pinMode(D7, OUTPUT);
     pinMode(D8, OUTPUT);
+
+    setup_ads1110();
 }
 
 void loop() {
@@ -51,7 +72,7 @@ void loop() {
             for (int i = 0; i < NUM_ELECTRODES; i++) {
                 bool status = false;
                 voltages[i] = calculateVoltage(i, &status);
-                delay(20);
+                delay(5);
             }
 
             // format data in JSON
@@ -74,6 +95,7 @@ float calculateVoltage(int electrode, bool* status) {
 
     // Request 3 bytes of data from the ADS1110 via I2C
     Wire.requestFrom(ads1110, 3);
+
     // Wait until all the requested data is available
     while (Wire.available())  // ensure all the data comes in
     {
@@ -84,7 +106,7 @@ float calculateVoltage(int electrode, bool* status) {
     }
 
     // read the ST/DRDY bit of the config register
-    if (configRegister | 0b10000000) {
+    if (configRegister & 0b10000000) {
 #ifdef DEBUG
         Serial.println("Data is old data!");
 #endif
@@ -95,6 +117,11 @@ float calculateVoltage(int electrode, bool* status) {
 #endif
         *status = true;
     }
+
+#ifdef DEBUG
+    bool sc_register = configRegister & 0b00010000;
+    Serial.println("sc_register is " + String(sc_register ? "Single Conversion Mode" : "Continuous Conversion Mode"));
+#endif
 
     // Combine the high and low bytes to get the raw data
     float data;
@@ -124,4 +151,36 @@ void selectElectrode(int electrode) {
         Serial.print(" ");
 #endif
     }
+}
+
+void setup_ads1110() {
+    config myConfig = config();
+    configRegister =
+        (myConfig.ST_DRDY << 7) +
+        (myConfig.PLACE_HOLDER_1 << 6) +
+        (myConfig.PLACE_HOLDER_0 << 5) +
+        (myConfig.SC_BIT << 4) +
+        (myConfig.DR_1 << 3) +
+        (myConfig.DR_0 << 2) +
+        (myConfig.PGA_1 << 1) +
+        (myConfig.PGA_0 << 0);
+
+#ifdef DEBUG
+    Serial.print("Writing config register...   ");
+#endif
+
+    Wire.beginTransmission(ads1110);  // Transmit to the ADS1110's I2C address
+
+#ifdef DEBUG
+    if (Wire.write(configRegister)) {  // Sends value byte
+        Serial.print("Wrote config register: " + String(configRegister) + " = 0b");
+        Serial.println(configRegister, BIN);
+    } else {
+        Serial.println("Failed to write config register.");
+    }
+#else
+    Wire.write(configRegister);
+#endif
+
+    Wire.endTransmission();
 }
