@@ -7,7 +7,7 @@
 // #define DEBUG
 
 void selectElectrode(int electrode_id);
-float calculateVoltage(int electrode);
+float calculateVoltage(int electrode, bool* status);
 
 // Define the I2C address for the ADS1110
 #define ads1110 0x49
@@ -49,7 +49,9 @@ void loop() {
         if (receivedChar == 'e') {
             // read voltages from electrodes
             for (int i = 0; i < NUM_ELECTRODES; i++) {
-                voltages[i] = calculateVoltage(i);
+                bool status = false;
+                voltages[i] = calculateVoltage(i, &status);
+                delay(20);
             }
 
             // format data in JSON
@@ -67,7 +69,7 @@ void loop() {
     delay(10);
 }
 
-float calculateVoltage(int electrode) {
+float calculateVoltage(int electrode, bool* status) {
     selectElectrode(electrode);
 
     // Request 3 bytes of data from the ADS1110 via I2C
@@ -79,6 +81,19 @@ float calculateVoltage(int electrode) {
         highbyte = Wire.read();  // high byte * B11111111
         lowbyte = Wire.read();   // low byte
         configRegister = Wire.read();
+    }
+
+    // read the ST/DRDY bit of the config register
+    if (configRegister | 0b10000000) {
+#ifdef DEBUG
+        Serial.println("Data is old data!");
+#endif
+        *status = false;
+    } else {
+#ifdef DEBUG
+        Serial.println("Data is new data!");
+#endif
+        *status = true;
     }
 
     // Combine the high and low bytes to get the raw data
