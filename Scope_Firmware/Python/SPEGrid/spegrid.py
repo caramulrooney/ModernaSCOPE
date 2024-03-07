@@ -1,9 +1,9 @@
 import pandas as pd
 
 # Read excel files into separate dataFrames
-df1 = pd.read_excel('ModernaSCOPE/Scope_Firmware/Python/SPEGrid/SPETestingGrid1.xlsx', index_col=0) # SPE number on sensing pcb table
-df2 = pd.read_excel('ModernaSCOPE/Scope_Firmware/Python/SPEGrid/SPETestingGrid2.xlsx', index_col=0) # Electrode ID number in firmware table
-df3 = pd.read_excel('ModernaSCOPE/Scope_Firmware/Python/SPEGrid/SPETestingGrid3.xlsx', index_col=0) # Interface board to SPE number on sensing pcb table
+df1 = pd.read_excel('/Scope_Firmware/Python/SPEGrid/SPETestingGrid1.xlsx', index_col=0) # SPE number on sensing pcb table
+df2 = pd.read_excel('/Scope_Firmware/Python/SPEGrid/SPETestingGrid2.xlsx', index_col=0) # Electrode ID number in firmware table
+df3 = pd.read_excel('/Scope_Firmware/Python/SPEGrid/SPETestingGrid3.xlsx', index_col=0) # Interface board to SPE number on sensing pcb table
 
 # Create empty dataframe to store the results (Interface board to electrode ID in firmware)
 result_df = pd.DataFrame(index=df3.index, columns=df3.columns)
