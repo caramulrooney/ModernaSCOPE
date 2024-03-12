@@ -3,7 +3,7 @@ import serial
 import json
 import matplotlib.pyplot as plt
 
-which_electrode = 74 # electrode id to plot
+which_electrode = 68 # electrode id to plot
 measurement_interval = 1 # seconds
 
 def request_electrode_data(n_tries = 5):
