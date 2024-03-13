@@ -28,6 +28,8 @@ class DataStorage():
             "timestamp",
             "guid",
             "calibration_ph",
+            "is_valid",
+            "invalid_reason",
         ]
         columns.extend([f"V_calibration_{i}" for i in range(N_ELECTRODES)])
         return pd.DataFrame(columns = columns).set_index("timestamp")
@@ -40,7 +42,7 @@ class DataStorage():
         columns.extend([f"V_electrode_{i}" for i in range(N_ELECTRODES)])
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
-    def add_calibration(self, ph: float, voltages: list[float]):
+    def add_calibration(self, ph: float, voltages: list[float | None]):
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
@@ -49,13 +51,15 @@ class DataStorage():
             "timestamp": str(timestamp),
             "guid": str(guid),
             "calibration_ph": ph,
+            "is_valid": True,
+            "invalid_reason": "",
         }
         new_row_values.update({f"V_calibration_{i}": [voltages[i]] for i in range(N_ELECTRODES)})
         new_row = pd.DataFrame(new_row_values)
 
         self.calibration_data = pd.concat([self.calibration_data, new_row], axis = "index", ignore_index = True)
 
-    def add_measurement(self, voltages: list[float]):
+    def add_measurement(self, voltages: list[float | None]):
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
