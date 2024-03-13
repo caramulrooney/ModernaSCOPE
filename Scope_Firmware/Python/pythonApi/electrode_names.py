@@ -48,14 +48,16 @@ class ElectrodeNames():
         """
         Given a 2 or 3 character string containing a single battleship notation, such as `A1` or `B12`, convert it into an integer representing the elecrode id, such as `0` or `23`.
         """
+        battleship = battleship.lower()
+
         # first case: a raw number
         if battleship.isdigit():
             electrode_id = int(battleship)
         else:
             try:
                 # second case: battleship notation
-                assert battleship[0] in constants.ROW_LETTERS
-                row_num = constants.ROW_LETTERS.index(battleship[0])
+                assert battleship[0] in constants.ROW_LETTERS.lower()
+                row_num = constants.ROW_LETTERS.lower().index(battleship[0])
                 assert battleship[1:].isdigit()
                 col_num = int(battleship[1:])
                 electrode_id = row_num * constants.N_COLUMNS + col_num - 1
@@ -71,8 +73,11 @@ class ElectrodeNames():
     @classmethod
     def parse_electrode_input(cls, input: str, selection_type: SelectionType = SelectionType.ROW_WISE) -> list[int]:
         """
-        Given a string containing one or more comma-separated ranges, such as `'A1-B5,H4-H9'`, return a list of the electrode ids contained withing the range, where each electrode id is an integer between 0 and 95. Do not accept any additional characters other than `-` and `,`. Print an error message if parsing is not successful.
+        Given a string containing one or more comma-separated ranges, such as `'A1-B5,H4-H9'`, return a list of the electrode ids contained withing the range, where each electrode id is an integer between 0 and 95. Do not accept any additional characters other than `-` and `,`. Electrode range is case-insensitve. Print an error message if parsing is not successful.
         """
+
+        if input == "all":
+            return list(range(constants.N_ELECTRODES))
         electrode_ids = []
         for battleship in input.split(","):
             if "-" in battleship:
@@ -94,7 +99,7 @@ class ElectrodeNames():
             column = str((electrode_id % constants.N_COLUMNS) + 1)
             output = output + row + column
 
-        return output
+        return output.upper()
 
     @classmethod
     def run_unit_tests(cls):

@@ -5,6 +5,7 @@ import operator
 from constants import N_ELECTRODES
 from os.path import exists
 from uuid import uuid4
+from typing import Optional
 
 class Storage():
     my_tz = timezone('US/Eastern')
@@ -42,7 +43,7 @@ class Storage():
         columns.extend([f"V_electrode_{i}" for i in range(N_ELECTRODES)])
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
-    def add_calibration(self, ph: float, voltages: list[float | None]):
+    def add_calibration(self, ph: float, voltages: list[Optional[float]]):
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
@@ -59,7 +60,7 @@ class Storage():
 
         self.calibration_data = pd.concat([self.calibration_data, new_row], axis = "index", ignore_index = True)
 
-    def add_measurement(self, voltages: list[float | None]):
+    def add_measurement(self, voltages: list[Optional[float]]):
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
