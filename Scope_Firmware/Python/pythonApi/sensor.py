@@ -25,8 +25,10 @@ def parse_battleship_notation(self, battleship):
 class Sensor():
     def __init__(self):
         self.storage = Storage(
-            calibration_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/calibration_data.csv",
-            sensor_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/sensor_data.csv"
+            # calibration_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/calibration_data.csv",
+            # sensor_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/sensor_data.csv"
+            calibration_data_filename = "sensor_data/calibration_data.csv",
+            sensor_data_filename = "sensor_data/sensor_data.csv"
         )
 
     def get_voltages_single(self) -> list[float]: # TODO: get data from sensor via pySerial
@@ -35,7 +37,7 @@ class Sensor():
         """
         return rand(1, N_ELECTRODES)
 
-    def get_voltages_blocking(self, n_measurements: int = 5, delay_between_measurements: float = 3, average_func: FloatCombiner = np.mean):
+    def get_voltages_blocking(self, n_measurements: int = 2, delay_between_measurements: float = 2, average_func: FloatCombiner = np.mean):
         """
         Perform a certain number of consecutive measurements and report the average voltage at each electrode over the duration of the measurement.
         """
@@ -84,6 +86,7 @@ class Sensor():
         for electrode_id in range(N_ELECTRODES):
             if electrode_id not in electrode_ids_being_calibrated:
                 voltages[electrode_id] = None
+        self.storage.add_calibration(ph, voltages)
 
     @unpack_namespace
     def show_calibration(self, electrodes, ph, sort_by_ph):

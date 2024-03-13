@@ -16,11 +16,11 @@ class Storage():
         self.sensor_data_filename = sensor_data_filename
 
         if exists(calibration_data_filename):
-            self.calibration_data = pd.read_csv(calibration_data_filename)
+            self.calibration_data = pd.read_csv(calibration_data_filename).set_index("timestamp")
         else:
             self.calibration_data = self.make_calibration_data_file()
         if exists(sensor_data_filename):
-            self.sensor_data = pd.read_csv(sensor_data_filename)
+            self.sensor_data = pd.read_csv(sensor_data_filename).set_index("timestamp")
         else:
             self.sensor_data = self.make_sensor_data_file()
 
@@ -56,9 +56,10 @@ class Storage():
             "invalid_reason": "",
         }
         new_row_values.update({f"V_calibration_{i}": [voltages[i]] for i in range(N_ELECTRODES)})
-        new_row = pd.DataFrame(new_row_values)
+        new_row_df = pd.DataFrame(new_row_values).set_index("timestamp")
 
-        self.calibration_data = pd.concat([self.calibration_data, new_row], axis = "index", ignore_index = True)
+        self.calibration_data = pd.concat([self.calibration_data, new_row_df], axis = "index")
+        self.write_data()
 
     def add_measurement(self, voltages: list[Optional[float]]):
         assert(len(voltages) == N_ELECTRODES)
@@ -70,10 +71,13 @@ class Storage():
             "guid": str(guid),
         }
         new_row_values.update({f"V_electrode_{i}": [voltages[i]] for i in range(N_ELECTRODES)})
-        new_row = pd.DataFrame(new_row_values)
+        new_row_df = pd.DataFrame(new_row_values).set_index("timestamp")
 
-        self.sensor_data = pd.concat([self.sensor_data, new_row], axis = "index", ignore_index = True)
+        self.sensor_data = pd.concat([self.sensor_data, new_row_df], axis = "index")
+        self.write_data()
 
     def write_data(self):
-        self.calibration_data.set_index("timestamp").to_csv(self.calibration_data_filename)
-        self.sensor_data.set_index("timestamp").to_csv(self.sensor_data_filename)
+        print(self.calibration_data.columns)
+        print(self.sensor_data.columns)
+        self.calibration_data.to_csv(self.calibration_data_filename)
+        self.sensor_data.to_csv(self.sensor_data_filename)
