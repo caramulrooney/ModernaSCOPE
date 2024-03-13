@@ -6,7 +6,7 @@ from constants import N_ELECTRODES
 from os.path import exists
 from uuid import uuid4
 
-class DataStorage():
+class Storage():
     my_tz = timezone('US/Eastern')
     max_calibration_time = dt.timedelta(hours = 12)
 

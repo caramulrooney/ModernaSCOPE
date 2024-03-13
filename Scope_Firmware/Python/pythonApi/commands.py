@@ -3,11 +3,15 @@ from sensor import Sensor
 SPLIT_CHARS = " "
 
 class Commands():
-    def __init__(self):
+    def __init__(self, sensor = None):
+        if sensor is None:
+            self.sensor = Sensor()
+        else:
+            self.sensor = sensor
+
         self.parser = ArgumentParser(prog="", exit_on_error = False, description =
     """This is the pH sensor command-line interface. To run, type one of the positional arguments followed by parameters and flags as necessary. For example, try running `# measure -vn` to measure the voltages at each of the electrodes. Type any command with the -h flag to see the options for that command.""")
         self.subparsers = self.parser.add_subparsers()
-        self.sensor = Sensor()
         self.make_parsers(exit_on_error = False)
 
     def execute(self, input):

@@ -1,6 +1,9 @@
 import inspect
-from calibrations import CalibrationHistory
+from storage import Storage
+from numpy.random import rand
 import constants
+from constants import N_ELECTRODES
+from electrode_names import ElectrodeNames
 
 def unpack_namespace(func):
     def inner(self, namespace):
@@ -16,17 +19,24 @@ def parse_battleship_notation(self, battleship):
 
 class Sensor():
     calibrations = []
+    measurement_in_progress = False
 
     def __init__(self):
-        for i in range(constants.N_ELECTRODES):
-            self.calibrations.append(CalibrationHistory(i))
+        self.storage = Storage(
+            calibration_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/calibration_data.csv",
+            sensor_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/sensor_data.csv"
+        )
 
     def get_voltages(self): # TODO: get data from sensor via pySerial
-        return [1, 2, 3, 4, 5]
+        return rand(1, N_ELECTRODES)
 
     @unpack_namespace
     def measure(self, electrodes, now, time_steps, max_time, voltage_only):
         print(f"Inside of measure, {electrodes=}, {now=}, {time_steps=}, {max_time=}, {voltage_only=}")
+        voltages = self.get_voltages()
+        electrode_ids = ElectrodeNames.parse_electrode_input(electrodes)
+        print(ElectrodeNames.to_battleship_notation(electrode_ids))
+
 
     @unpack_namespace
     def calibrate(self, electrodes, ph):
