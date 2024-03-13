@@ -1,46 +1,74 @@
+import pandas as pd
 import datetime as dt
 from pytz import timezone
 import operator
+from constants import N_ELECTRODES
+from os.path import exists
+from uuid import uuid4
 
-class CalibrationDatum():
-    def __init__(self, ph, voltage, timestamp):
-        self.ph = ph
-        self.voltage = voltage
-        self.timestamp = timestamp
-        self.is_recent = True
-
-    def __repr__(self):
-        return f"{{ph: {self.ph}, voltage: {self.voltage}, timestamp: {self.timestamp}}}" # TODO: jsonify timestamp
-
-class CalibrationHistory():
+class DataStorage():
     my_tz = timezone('US/Eastern')
     max_calibration_time = dt.timedelta(hours = 12)
-    calibration_data = []
-    recent_calibration_data = []
-    def __init__(self, electrode_id):
-        self.electrode_id = electrode_id
 
-    def add_calibration(self, ph, voltage):
-        self.calibration_data.append(CalibrationDatum(ph, voltage, dt.datetime.now(self.my_tz)))
+    def __init__(self, calibration_data_filename: str, sensor_data_filename: str):
+        self.calibration_data_filename = calibration_data_filename
+        self.sensor_data_filename = sensor_data_filename
 
-    def mark_old_calibrations(self, epsilon = 0.5):
-        time_sorted_data = sorted(self.calibration_data, key = operator.attrgetter('timestamp'), reverse = True) # sort from most recent to least recent
+        if exists(calibration_data_filename):
+            self.calibration_data = pd.read_csv(calibration_data_filename)
+        else:
+            self.calibration_data = self.make_calibration_data_file()
+        if exists(sensor_data_filename):
+            self.sensor_data = pd.read_csv(sensor_data_filename)
+        else:
+            self.sensor_data = self.make_sensor_data_file()
 
-        for time_sorted_datum in time_sorted_data:
-            if dt.datetime.now(self.my_tz) - time_sorted_datum.timestamp > self.max_calibration_time:
-                time_sorted_datum.is_recent = False
-            if not time_sorted_datum.is_recent:
-                continue
-            # compare other data points to the current most recent data point
-            for datum in self.calibration_data:
-                if datum.timestamp < time_sorted_datum.timestamp and abs(datum.ph - time_sorted_datum.ph) < epsilon:
-                    datum.is_recent = False
+    def make_calibration_data_file(self) -> pd.DataFrame:
+        columns = [
+            "timestamp",
+            "guid",
+            "calibration_ph",
+        ]
+        columns.extend([f"V_calibration_{i}" for i in range(N_ELECTRODES)])
+        return pd.DataFrame(columns = columns).set_index("timestamp")
 
-    def get_recent_calibrations(self):
-        self.mark_old_calibrations(epsilon = 0.5)
-        recent_calibrations = []
-        for datum in self.calibration_data:
-            if datum.is_recent:
-                recent_calibrations.append(datum)
-        self.recent_calibration_data = recent_calibrations
-        return recent_calibrations
+    def make_sensor_data_file(self) -> pd.DataFrame:
+        columns = [
+            "timestamp",
+            "guid",
+        ]
+        columns.extend([f"V_electrode_{i}" for i in range(N_ELECTRODES)])
+        return pd.DataFrame(columns = columns).set_index("timestamp")
+
+    def add_calibration(self, ph: float, voltages: list[float]):
+        assert(len(voltages) == N_ELECTRODES)
+        timestamp = dt.datetime.now(tz = self.my_tz)
+        guid = uuid4()
+
+        new_row_values = {
+            "timestamp": str(timestamp),
+            "guid": str(guid),
+            "calibration_ph": ph,
+        }
+        new_row_values.update({f"V_calibration_{i}": [voltages[i]] for i in range(N_ELECTRODES)})
+        new_row = pd.DataFrame(new_row_values)
+
+        self.calibration_data = pd.concat([self.calibration_data, new_row], axis = "index", ignore_index = True)
+
+    def add_measurement(self, voltages: list[float]):
+        assert(len(voltages) == N_ELECTRODES)
+        timestamp = dt.datetime.now(tz = self.my_tz)
+        guid = uuid4()
+
+        new_row_values = {
+            "timestamp": str(timestamp),
+            "guid": str(guid),
+        }
+        new_row_values.update({f"V_electrode_{i}": [voltages[i]] for i in range(N_ELECTRODES)})
+        new_row = pd.DataFrame(new_row_values)
+
+        self.sensor_data = pd.concat([self.sensor_data, new_row], axis = "index", ignore_index = True)
+
+    def write_data(self):
+        self.calibration_data.set_index("timestamp").to_csv(self.calibration_data_filename)
+        self.sensor_data.set_index("timestamp").to_csv(self.sensor_data_filename)
