@@ -28,7 +28,8 @@ class Sensor():
             # calibration_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/calibration_data.csv",
             # sensor_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/sensor_data.csv"
             calibration_data_filename = "sensor_data/calibration_data.csv",
-            sensor_data_filename = "sensor_data/sensor_data.csv"
+            sensor_data_filename = "sensor_data/sensor_data.csv",
+            ph_data_filename = "sensor_data/ph_data.csv"
         )
 
     def get_voltages_single(self) -> list[float]: # TODO: get data from sensor via pySerial
@@ -65,13 +66,15 @@ class Sensor():
         print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
 
         voltages = self.get_voltages_blocking()
-        print(voltages)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
             if electrode_id not in electrode_ids_being_measured:
                 voltages[electrode_id] = None
-        self.storage.add_measurement(voltages)
+
+        print("Converting measurement to ph...")
+        guid = self.storage.add_measurement(voltages)
+        print(f"Storing pH measurement with GUID '{guid}'")
 
     @unpack_namespace
     def calibrate(self, electrodes, ph):
@@ -80,13 +83,13 @@ class Sensor():
         print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
 
         voltages = self.get_voltages_blocking()
-        print(voltages)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
             if electrode_id not in electrode_ids_being_calibrated:
                 voltages[electrode_id] = None
-        self.storage.add_calibration(ph, voltages)
+        guid = self.storage.add_calibration(ph, voltages)
+        print(f"Storing calibration entry with GUID '{guid}'")
 
     @unpack_namespace
     def show_calibration(self, electrodes, ph, sort_by_ph):
