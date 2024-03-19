@@ -174,23 +174,31 @@ class Storage():
         self.write_data()
         return measurement_guid
 
+    def get_most_recent_calibration_ph(self) -> float:
+        last_row = self.calibration_data.sort_index(ascending = True).tail(1)
+        calibration_ph = last_row["calibration_ph"].iloc[0]
+        return calibration_ph
+
     def get_most_recent_calibration(self) -> list[Optional[float]]:
         last_row = self.calibration_data.sort_index(ascending = True).tail(1)
         calibration_values = []
         for electrode_id in range(N_ELECTRODES):
-            calibration_values.append(last_row[f"V_calibration_{electrode_id}"].iloc[0])
+            calibration_value = last_row[f"V_calibration_{electrode_id}"].iloc[0]
+            calibration_values.append(calibration_value if pd.notna(calibration_value) else None)
         return calibration_values
 
     def get_most_recent_measurement(self) -> list[Optional[float]]:
         last_row = self.sensor_data.sort_index(ascending = True).tail(1)
         voltage_values = []
         for electrode_id in range(N_ELECTRODES):
-            voltage_values.append(last_row[f"V_electrode_{electrode_id}"].iloc[0])
+            voltage_value = last_row[f"V_electrode_{electrode_id}"].iloc[0]
+            voltage_values.append(voltage_value if pd.notna(voltage_value) else None)
         return voltage_values
 
     def get_most_recent_ph(self) -> list[Optional[float]]:
         last_row = self.ph_data.sort_index(ascending = True).tail(1)
         ph_values = []
         for electrode_id in range(N_ELECTRODES):
-            ph_values.append(last_row[f"ph_electrode_{electrode_id}"].iloc[0])
+            ph_value = last_row[f"ph_electrode_{electrode_id}"].iloc[0]
+            ph_values.append(ph_value if pd.notna(ph_value) else None)
         return ph_values

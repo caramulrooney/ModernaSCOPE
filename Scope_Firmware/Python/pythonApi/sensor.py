@@ -119,11 +119,15 @@ class Sensor():
             ElectrodeNames.ascii_art_selected(electrode_ids)
             return
         if calibration:
+            calibration_ph = self.get_most_recent_calibration_ph()
+            print(f"Showing voltages from the most recent calibration run in Volts. The pH value was {calibration_ph:.2f}.")
             calibration_values = self.storage.get_most_recent_calibration()
-            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" for val in calibration_values]))
+            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in calibration_values]))
         if voltage:
+            print(f"Showing voltages from the most recent measurement in Volts.")
             voltage_values = self.storage.get_most_recent_measurement()
-            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" for val in voltage_values]))
+            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in voltage_values]))
         if ph:
+            print(f"Showing pH values from the most recent measurement in pH units.")
             ph_values = self.storage.get_most_recent_ph()
-            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" for val in ph_values]))
+            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" if val is not None else None for val in ph_values]))
