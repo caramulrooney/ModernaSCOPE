@@ -37,10 +37,10 @@ class Commands():
     settled. Silently run in the background until measurements are settled, then
     print the results in a tabular format.""")
         measure_parser.add_argument('-e', '--electrodes', type = str, default = 'all', help = "Electrode range to measure. Default is all 96 electrodes.")
-        measure_parser.add_argument('-n', '--now', action = 'store_true', help = "Do not wait for measurements to settle; report pH measurements now.")
-        measure_parser.add_argument('-t', '--time_steps', type = float, help = "Print out the pH values every n seconds until it settles (default: 1 second).")
-        measure_parser.add_argument('-m', '--max_time', type = float, help = "Wait at most n seconds for the measurement to settle. Default is all 96 electrodes.")
-        measure_parser.add_argument('-v', '--voltage_only', action = 'store_true', help = "Report voltage values, not pH values.")
+        measure_parser.add_argument('-n', '--num_measurements', type = int, default = 5, help = "Number of measurements to take and average together. Default is 5 measurements.")
+        measure_parser.add_argument('-t', '--time_interval', type = float, default = 2, help = "Time interval between measurements (minimum: 2 seconds, default: 2 seconds).")
+        measure_parser.add_argument('-s', '--show', action = 'store_true', help = "Show the pH values after they are measured.")
+        measure_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage values after they are measured.")
         measure_parser.set_defaults(func = self.sensor.measure)
 
         calibrate_parser  =  self.subparsers.add_parser("calibrate", exit_on_error = exit_on_error, description =
@@ -52,8 +52,12 @@ class Commands():
     Each calibration for a new pH value will be stored. If a new calibration is
     performed at a pH value that has already been calibrated, the previous
     calibration will be overwritten.""")
-        calibrate_parser.add_argument('-e', '--electrodes', type = str, default = 'all', help = "Electrode range to calibrate. Default is all 96 electrodes.")      # option that takes a value
         calibrate_parser.add_argument('ph', type = float, help = "The pH of the buffer currently applied to the electrodes being calibrated.")      # option that takes a value
+        calibrate_parser.add_argument('-e', '--electrodes', type = str, default = 'all', help = "Electrode range to calibrate. Default is all 96 electrodes.")      # option that takes a value
+        calibrate_parser.add_argument('-n', '--num_measurements', type = int, default = 5, help = "Number of measurements to take and average together. Default is 5 measurements.")
+        calibrate_parser.add_argument('-t', '--time_interval', type = float, default = 2, help = "Time interval between measurements (minimum: 2 seconds, default: 2 seconds).")
+        calibrate_parser.add_argument('-s', '--show', action = 'store_true', help = "Show the pH values after they are measured.")
+        calibrate_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage values after they are measured.")
         calibrate_parser.set_defaults(func = self.sensor.calibrate)
 
         show_calibration_parser = self.subparsers.add_parser("show_calibration", prog = "show_calibration", exit_on_error = exit_on_error, description =

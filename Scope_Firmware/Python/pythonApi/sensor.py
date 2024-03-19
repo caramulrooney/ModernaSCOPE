@@ -60,12 +60,12 @@ class Sensor():
 
 
     @unpack_namespace
-    def measure(self, electrodes, now, time_steps, max_time, voltage_only):
-        print(f"Inside of measure, {electrodes=}, {now=}, {time_steps=}, {max_time=}, {voltage_only=}")
+    def measure(self, electrodes, num_measurements, time_interval, show, voltage):
+        print(f"Inside of measure, {electrodes=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
         electrode_ids_being_measured = ElectrodeNames.parse_electrode_input(electrodes)
         print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
 
-        voltages = self.get_voltages_blocking()
+        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
@@ -75,14 +75,19 @@ class Sensor():
         print("Converting measurement to ph...")
         guid = self.storage.add_measurement(voltages)
         print(f"Storing pH measurement with GUID '{guid}'")
+        if voltage:
+            self.show_most_recent_measurement_voltage()
+            return
+        if show:
+            self.show_most_recent_measurement_ph()
 
     @unpack_namespace
-    def calibrate(self, electrodes, ph):
-        print(f"Inside of calibrate, {electrodes=}, {ph=}")
+    def calibrate(self, ph, electrodes, num_measurements, time_interval, show, voltage):
+        print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
         electrode_ids_being_calibrated = ElectrodeNames.parse_electrode_input(electrodes)
         print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
 
-        voltages = self.get_voltages_blocking()
+        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
@@ -90,6 +95,11 @@ class Sensor():
                 voltages[electrode_id] = None
         guid = self.storage.add_calibration(ph, voltages)
         print(f"Storing calibration entry with GUID '{guid}'")
+        if voltage:
+            self.show_most_recent_calibration_voltage()
+            return
+        if show:
+            self.show_most_recent_calibration_ph()
 
     @unpack_namespace
     def show_calibration(self, electrodes, ph, sort_by_ph):
@@ -119,15 +129,30 @@ class Sensor():
             ElectrodeNames.ascii_art_selected(electrode_ids)
             return
         if calibration:
-            calibration_ph = self.get_most_recent_calibration_ph()
+            self.show_most_recent_calibration_voltage()
+        if voltage:
+            self.show_most_recent_measurement_voltage()
+        if ph:
+            self.show_most_recent_measurement_ph()
+
+    def show_most_recent_calibration_ph(self):
+            calibration_ph = self.storage.get_most_recent_calibration_ph()
+            print(f"Showing the pH value being stored for the most recent calibration run. To see the associated voltages, use 'show -c'.")
+            calibration_values = self.storage.get_most_recent_calibration()
+            print(ElectrodeNames.electrode_ascii_art([f"{calibration_ph:.2f}" if val is not None else None for val in calibration_values]))
+
+    def show_most_recent_calibration_voltage(self):
+            calibration_ph = self.storage.get_most_recent_calibration_ph()
             print(f"Showing voltages from the most recent calibration run in Volts. The pH value was {calibration_ph:.2f}.")
             calibration_values = self.storage.get_most_recent_calibration()
             print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in calibration_values]))
-        if voltage:
-            print(f"Showing voltages from the most recent measurement in Volts.")
-            voltage_values = self.storage.get_most_recent_measurement()
-            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in voltage_values]))
-        if ph:
-            print(f"Showing pH values from the most recent measurement in pH units.")
-            ph_values = self.storage.get_most_recent_ph()
-            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" if val is not None else None for val in ph_values]))
+
+    def show_most_recent_measurement_voltage(self):
+        print(f"Showing voltages from the most recent measurement in Volts. To see the calculated pH values, use 'show -p'.")
+        voltage_values = self.storage.get_most_recent_measurement()
+        print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in voltage_values]))
+
+    def show_most_recent_measurement_ph(self):
+        print(f"Showing pH values from the most recent measurement in pH units. To see the associated voltages, use 'show -v'.")
+        ph_values = self.storage.get_most_recent_ph()
+        print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" if val is not None else None for val in ph_values]))
