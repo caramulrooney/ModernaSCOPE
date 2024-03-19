@@ -8,6 +8,6 @@ class CustomLexer(RegexLexer):
             (r' ([0-9]*[.])?[0-9]+', Literal),
             (r' ([^-])([^ ])*', Literal.String),
             (r'--[^ ]+', Name.Decorator),
-            (r'-[^- ]+', Name.Tag),
+            (r' -[^- ]+', Name.Tag),
         ]
     }
