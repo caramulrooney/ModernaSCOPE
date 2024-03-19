@@ -173,3 +173,24 @@ class Storage():
         self.ph_data = pd.concat([self.ph_data if not self.ph_data.empty else None, new_row_df], axis = "index")
         self.write_data()
         return measurement_guid
+
+    def get_most_recent_calibration(self) -> list[Optional[float]]:
+        last_row = self.calibration_data.sort_index(ascending = True).tail(1)
+        calibration_values = []
+        for electrode_id in range(N_ELECTRODES):
+            calibration_values.append(last_row[f"V_calibration_{electrode_id}"].iloc[0])
+        return calibration_values
+
+    def get_most_recent_measurement(self) -> list[Optional[float]]:
+        last_row = self.sensor_data.sort_index(ascending = True).tail(1)
+        voltage_values = []
+        for electrode_id in range(N_ELECTRODES):
+            voltage_values.append(last_row[f"V_electrode_{electrode_id}"].iloc[0])
+        return voltage_values
+
+    def get_most_recent_ph(self) -> list[Optional[float]]:
+        last_row = self.ph_data.sort_index(ascending = True).tail(1)
+        ph_values = []
+        for electrode_id in range(N_ELECTRODES):
+            ph_values.append(last_row[f"ph_electrode_{electrode_id}"].iloc[0])
+        return ph_values

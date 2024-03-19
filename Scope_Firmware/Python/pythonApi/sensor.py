@@ -119,8 +119,11 @@ class Sensor():
             ElectrodeNames.ascii_art_selected(electrode_ids)
             return
         if calibration:
-            pass
+            calibration_values = self.storage.get_most_recent_calibration()
+            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" for val in calibration_values]))
         if voltage:
-            pass
+            voltage_values = self.storage.get_most_recent_measurement()
+            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" for val in voltage_values]))
         if ph:
-            pass
+            ph_values = self.storage.get_most_recent_ph()
+            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" for val in ph_values]))
