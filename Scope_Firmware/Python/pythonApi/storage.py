@@ -140,14 +140,14 @@ class Storage():
 
         ph_list = []
         for index, row in df.iterrows():
-            if self.is_close_to_another_ph(ph_list, row["ph"]):
+            if self.is_close_to_another_ph(ph_list, row["ph"]) or pd.isna(row["voltage"]):
                 df.drop(index = index, inplace = True)
             else:
                 ph_list.append(row["ph"])
         return df
 
     def calibration_list_to_ph(self, calibration_list: pd.DataFrame, measured_voltage: float) -> float:
-        df = calibration_list.sort_values("ph", ascending = True)
+        df = calibration_list.copy().sort_values("ph", ascending = True)
         return np.interp(measured_voltage, df["voltage"], df["ph"])
 
 
@@ -162,7 +162,7 @@ class Storage():
         }
 
         for electrode_id in range(N_ELECTRODES):
-            if relevant_calibration_data[f"V_calibration_{electrode_id}"] is None:
+            if all(pd.isna(relevant_calibration_data[f"V_calibration_{electrode_id}"])):
                 new_row_values[f"ph_electrode_{electrode_id}"] = None
                 continue
             calibration_list = self.calibration_list_for_electrode(electrode_id, relevant_calibration_data)
