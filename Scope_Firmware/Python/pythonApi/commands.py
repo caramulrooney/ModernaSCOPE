@@ -86,3 +86,7 @@ class Commands():
         show_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage on each of the electrodes for the most recent measurement.")
         show_parser.add_argument('-p', '--ph', action = 'store_true', help = "Show the pH on each of the electrodes for the most recent measurement.")
         show_parser.set_defaults(func = self.sensor.show)
+
+        load_parser = self.subparsers.add_parser("load", prog = "load", exit_on_error = exit_on_error, description =
+    """Re-load the csv file for calibration data from memory.""")
+        load_parser.set_defaults(func = self.sensor.reload_files)

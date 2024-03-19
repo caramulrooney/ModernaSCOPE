@@ -1,5 +1,11 @@
 from enum import Enum
 
+class FilePaths(str, Enum): # https://stackoverflow.com/a/58608362
+    calibration_data_filename = "sensor_data/calibration_data.csv"
+    sensor_data_filename = "sensor_data/sensor_data.csv"
+    ph_data_filename = "sensor_data/ph_data.csv"
+    calibration_map_filename = "sensor_data/calibration_map.csv"
+
 N_ELECTRODES = 96
 N_COLUMNS = 12
 N_ROWS = 8
