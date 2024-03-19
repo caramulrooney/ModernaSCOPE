@@ -101,3 +101,26 @@ class Sensor():
     @unpack_namespace
     def clear_calibration(self, electrodes, ph, all):
         print(f"Inside of calibrate, {electrodes=}, {ph=}, {all=}")
+
+
+    @unpack_namespace
+    def show(self, ids: bool, electrodes: str, calibration: bool, voltage: bool, ph: bool):
+        show_electrodes: bool = electrodes != ""
+        if sum([ids, show_electrodes, calibration, voltage, ph]) > 1:
+            print("Please select only one option at a time.")
+            return
+        if sum([ids, show_electrodes, calibration, voltage, ph]) < 1:
+            ids = True
+        if ids:
+            ElectrodeNames.ascii_art_electrode_ids()
+            return
+        if electrodes:
+            electrode_ids = ElectrodeNames.parse_electrode_input(electrodes)
+            ElectrodeNames.ascii_art_selected(electrode_ids)
+            return
+        if calibration:
+            pass
+        if voltage:
+            pass
+        if ph:
+            pass

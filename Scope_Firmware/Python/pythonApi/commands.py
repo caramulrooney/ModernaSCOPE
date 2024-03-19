@@ -73,3 +73,12 @@ class Commands():
 
         quit_parser = self.subparsers.add_parser("quit", prog = "quit", exit_on_error = True, description = """Exit the program.""")
         quit_parser.set_defaults(func = quit)
+
+        show_parser = self.subparsers.add_parser("show", prog = "show", exit_on_error = exit_on_error, description =
+    """Display information about the selected electrodes, most recent calibrations, and measurements.""")
+        show_parser.add_argument('-i', '--ids', action = 'store_true', help = "Show how the A1-H12 notation is mapped onto the electrode index in the code. This can be useful for debugging or for inspecting the CSV files where calibration and measurement data are stored.")
+        show_parser.add_argument('-e', '--electrodes', type = str, default = "", help = "Show which electrodes are selected by providing a range in A1-H12 notation.")
+        show_parser.add_argument('-c', '--calibration', action = 'store_true', help = "Show the voltages on each of the electrodes during the most recent calibration.")
+        show_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage on each of the electrodes for the most recent measurement.")
+        show_parser.add_argument('-p', '--ph', action = 'store_true', help = "Show the pH on each of the electrodes for the most recent measurement.")
+        show_parser.set_defaults(func = self.sensor.show)
