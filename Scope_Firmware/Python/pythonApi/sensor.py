@@ -2,7 +2,7 @@ import inspect
 from storage import Storage
 from numpy.random import rand
 import numpy as np
-from constants import N_ELECTRODES
+from config import N_ELECTRODES
 from electrode_names import ElectrodeNames
 from typing import Protocol
 import time

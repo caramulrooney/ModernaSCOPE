@@ -1,4 +1,4 @@
-from constants import SelectionType, N_COLUMNS, N_ELECTRODES, ROW_LETTERS
+from config import SelectionType, N_COLUMNS, N_ELECTRODES, ROW_LETTERS
 import numpy as np
 
 class ElectrodeNames():

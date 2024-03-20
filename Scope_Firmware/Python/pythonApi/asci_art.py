@@ -1,4 +1,4 @@
-from constants import N_ELECTRODES
+from config import N_ELECTRODES
 import numpy as np
 
 def art(vals: str) -> str:

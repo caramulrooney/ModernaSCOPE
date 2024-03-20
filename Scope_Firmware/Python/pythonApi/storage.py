@@ -3,7 +3,7 @@ import datetime as dt
 from pytz import timezone
 import dateutil.parser
 import operator
-from constants import N_ELECTRODES, Config
+from config import N_ELECTRODES, Config
 from os.path import exists
 from uuid import uuid4
 from typing import Optional

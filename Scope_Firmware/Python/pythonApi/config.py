@@ -10,7 +10,12 @@ class Config():
 
     @classmethod
     def set_config(cls, config_filename):
-        f = open(config_filename)
+        try:
+            f = open(config_filename)
+        except FileNotFoundError:
+            print(f"Could not open file {config_filename}. Using default configuration settings instead.")
+            return
+
         data = json.load(f)
         if "calibration_data_filename" in data.keys():
             cls.calibration_data_filename = data["calibration_data_filename"]

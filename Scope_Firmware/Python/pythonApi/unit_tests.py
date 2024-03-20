@@ -1,5 +1,5 @@
 from electrode_names import ElectrodeNames
-from constants import N_ELECTRODES
+from config import N_ELECTRODES
 from storage import Storage
 from numpy.random import rand, uniform
 from pathlib import Path
