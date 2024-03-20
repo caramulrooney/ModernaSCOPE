@@ -15,8 +15,8 @@ class CustomLexer(RegexLexer):
 class YesNoLexer(RegexLexer):
     tokens = {
         'root': [
+            (r'(Y.+)|(n.+)|([^Yn]+)', Literal),
             (r'Y', Name.Tag),
             (r'n', Literal.String),
-            (r'.*', Literal),
         ]
     }

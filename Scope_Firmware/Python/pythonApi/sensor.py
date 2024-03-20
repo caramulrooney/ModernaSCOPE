@@ -112,13 +112,15 @@ class Sensor():
         if not len(config_filename) == 0:
             Config.set_config(config_filename)
         self.storage = Storage()
+        print(f"Loaded data from the files specified in '{config_filename}'.")
 
     @unpack_namespace
     def write_files(self, config_filename):
-        print(f"Inside of reload_files")
+        print(f"Inside of write_files")
         if not len(config_filename) == 0:
             Config.set_config(config_filename)
         self.storage.write_data()
+        print(f"Wrote data to the files specified in '{config_filename}'.")
 
     @unpack_namespace
     def show(self, ids: bool, electrodes: str, calibration: bool, voltage: bool, ph: bool):
