@@ -1,10 +1,27 @@
 from enum import Enum
+import json
 
-class FilePaths(str, Enum): # https://stackoverflow.com/a/58608362
+class Config():
     calibration_data_filename = "sensor_data/calibration_data.csv"
     sensor_data_filename = "sensor_data/sensor_data.csv"
     ph_data_filename = "sensor_data/ph_data.csv"
     calibration_map_filename = "sensor_data/calibration_map.csv"
+    debug = False
+
+    @classmethod
+    def set_config(cls, config_filename):
+        f = open(config_filename)
+        data = json.load(f)
+        if "calibration_data_filename" in data.keys():
+            cls.calibration_data_filename = data["calibration_data_filename"]
+        if "sensor_data_filename" in data.keys():
+            cls.sensor_data_filename = data["sensor_data_filename"]
+        if "ph_data_filename" in data.keys():
+            cls.ph_data_filename = data["ph_data_filename"]
+        if "calibration_map_filename" in data.keys():
+            cls.calibration_map_filename = data["calibration_map_filename"]
+        if "debug" in data.keys():
+            cls.debug = data["debug"]
 
 N_ELECTRODES = 96
 N_COLUMNS = 12

@@ -1,9 +1,17 @@
 from prompt_toolkit import PromptSession
 from prompt_toolkit.lexers import PygmentsLexer
-from constants import init_text_art
+from constants import init_text_art, Config
 from commands import Commands
 from lexer import CustomLexer
 from sensor import Sensor
+import argparse
+
+parser = argparse.ArgumentParser("config")
+parser.add_argument("config", nargs = "*", default = "config.json")
+args = parser.parse_args()
+print(args.config)
+Config.set_config(args.config)
+
 
 sensor = Sensor()
 commands = Commands(sensor)

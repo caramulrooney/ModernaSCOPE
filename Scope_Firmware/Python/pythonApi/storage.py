@@ -3,7 +3,7 @@ import datetime as dt
 from pytz import timezone
 import dateutil.parser
 import operator
-from constants import N_ELECTRODES
+from constants import N_ELECTRODES, Config
 from os.path import exists
 from uuid import uuid4
 from typing import Optional
@@ -14,31 +14,31 @@ class Storage():
     max_calibration_time = dt.timedelta(hours = 12)
     ph_epsilon = 0.5
 
-    def __init__(self, calibration_data_filename: str, sensor_data_filename: str, ph_data_filename: str, calibration_map_filename: str):
-        self.calibration_data_filename = calibration_data_filename
-        self.sensor_data_filename = sensor_data_filename
-        self.ph_data_filename = ph_data_filename
-        self.calibration_map_filename = calibration_map_filename
+    def __init__(self):
+        self.calibration_data_filename = Config.calibration_data_filename
+        self.sensor_data_filename = Config.sensor_data_filename
+        self.ph_data_filename = Config.ph_data_filename
+        self.calibration_map_filename = Config.calibration_map_filename
 
-        if exists(calibration_data_filename):
+        if exists(self.calibration_data_filename):
             self.calibration_data = pd.read_csv(
-                calibration_data_filename,
+                self.calibration_data_filename,
                 parse_dates = ["timestamp"],
             ).set_index("timestamp")
         else:
             self.calibration_data = self.make_calibration_data_file()
 
-        if exists(sensor_data_filename):
+        if exists(self.sensor_data_filename):
             self.sensor_data = pd.read_csv(
-                sensor_data_filename,
+                self.sensor_data_filename,
                 parse_dates = ["timestamp"],
             ).set_index("timestamp")
         else:
             self.sensor_data = self.make_sensor_data_file()
 
-        if exists(ph_data_filename):
+        if exists(self.ph_data_filename):
             self.ph_data = pd.read_csv(
-                ph_data_filename,
+                self.ph_data_filename,
                 parse_dates = ["timestamp"],
             ).set_index("timestamp")
         else:
@@ -90,6 +90,7 @@ class Storage():
 
         new_row_df = pd.DataFrame(new_row_values).dropna(axis = "columns").set_index("timestamp")
         self.calibration_data = pd.concat([self.calibration_data if not self.calibration_data.empty else None, new_row_df], axis = "index")
+        self.calibration_map = {}
         self.write_data()
         return str(guid)
 
@@ -116,11 +117,16 @@ class Storage():
         self.sensor_data.to_csv(self.sensor_data_filename)
         self.ph_data.to_csv(self.ph_data_filename)
 
-        calibration_map_df = self.calibration_map_to_dataframe(self.calibration_map)
+        if len(self.calibration_map) == 0:
+            # after a calibration or some other operation which left self.calibration_map empty, erase the file
+            calibration_map_df = pd.DataFrame()
+        else:
+            calibration_map_df = self.calibration_map_to_dataframe(self.calibration_map)
         calibration_map_df.to_csv(self.calibration_map_filename, index_label = calibration_map_df.index.name)
 
     def calibration_map_to_dataframe(self, calibration_map) -> pd.DataFrame:
         # convert calibration_map into a dataframe by normalizing the lengths of all of its arrays
+        print(calibration_map)
         measurement_guid = calibration_map["measurement_guid"]
         calibration_map_no_guid = dict(calibration_map) # make a copy so we can delete the guid entry
         del calibration_map_no_guid["measurement_guid"]

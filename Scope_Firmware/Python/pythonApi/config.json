@@ -1,0 +1,7 @@
+{
+  "calibration_data_filename": "sensor_data/calibration_data.csv",
+  "sensor_data_filename": "sensor_data/sensor_data.csv",
+  "ph_data_filename": "sensor_data/ph_data.csv",
+  "calibration_map_filename": "sensor_data/calibration_map.csv",
+  "debug": false
+}

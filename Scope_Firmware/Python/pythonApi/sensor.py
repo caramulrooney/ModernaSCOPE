@@ -2,7 +2,7 @@ import inspect
 from storage import Storage
 from numpy.random import rand
 import numpy as np
-from constants import FilePaths, N_ELECTRODES
+from constants import N_ELECTRODES
 from electrode_names import ElectrodeNames
 from typing import Protocol
 import time
@@ -24,14 +24,7 @@ def parse_battleship_notation(self, battleship):
 
 class Sensor():
     def __init__(self):
-        self.storage = Storage(
-            # calibration_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/calibration_data.csv",
-            # sensor_data_filename = "Scope_Firmware/Python/pythonApi/sensor_data/sensor_data.csv"
-            calibration_data_filename = FilePaths.calibration_data_filename,
-            sensor_data_filename = FilePaths.sensor_data_filename,
-            ph_data_filename = FilePaths.ph_data_filename,
-            calibration_map_filename = FilePaths.calibration_map_filename
-        )
+        self.storage = Storage()
 
     def get_voltages_single(self) -> list[float]: # TODO: get data from sensor via pySerial
         """
@@ -115,12 +108,7 @@ class Sensor():
     @unpack_namespace
     def reload_files(self):
         print(f"Inside of reload_files")
-        self.storage = Storage(
-            calibration_data_filename = FilePaths.calibration_data_filename,
-            sensor_data_filename = FilePaths.sensor_data_filename,
-            ph_data_filename = FilePaths.ph_data_filename,
-            calibration_map_filename = FilePaths.calibration_map_filename
-        )
+        self.storage = Storage()
 
     @unpack_namespace
     def show(self, ids: bool, electrodes: str, calibration: bool, voltage: bool, ph: bool):
