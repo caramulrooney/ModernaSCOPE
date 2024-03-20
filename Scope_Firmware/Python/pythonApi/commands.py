@@ -1,5 +1,6 @@
 from argparse import ArgumentParser, ArgumentError
 from sensor import Sensor
+from config import Config
 SPLIT_CHARS = " "
 
 class Commands():
@@ -86,10 +87,15 @@ class Commands():
 
         load_parser = self.subparsers.add_parser("load", prog = "load", exit_on_error = exit_on_error, description =
     """Re-load the csv file for calibration data from memory.""")
-        show_parser.add_argument('-f', '--file', type = str, default = "", help = "Re-load files from the specified JSON configuration file. Default is the configuration file used to initialize the program.")
+        load_parser.add_argument('-f', '--file', type = str, default = "", help = "Re-load files from the specified JSON configuration file. Default is the configuration file used to initialize the program.")
         load_parser.set_defaults(func = self.sensor.reload_files)
 
         write_parser = self.subparsers.add_parser("write", prog = "write", exit_on_error = exit_on_error, description =
     """Write the currently stored data to a csv file. This should be done automatically after every measurement and calibration, except when a file write fails because the file was open in another program at the same time.""")
         write_parser.add_argument('-f', '--file', type = str, default = "", help = "Write files to the filenames specified in the JSON configuration file. Default is the configuration file used to initialize the program.")
         write_parser.set_defaults(func = self.sensor.write_files)
+
+        conversion_info_parser = self.subparsers.add_parser("conversion_info", prog = "conversion_info", exit_on_error = exit_on_error, description =
+    f"""Generate conversion information for a given measurement ID to show which calibration data points were used to convert from a voltage to a pH. Store the resulting information as a CSV file in the folder specified in the configuration file (currently {Config.calibration_map_folder}).""")
+        conversion_info_parser.add_argument('-m', '--measurement_id', type = str, default = "", help = "Measurement ID for which to generate conversion information.")
+        conversion_info_parser.set_defaults(func = self.sensor.generate_conversion_info)

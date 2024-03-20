@@ -144,6 +144,10 @@ class Sensor():
         if ph:
             self.show_most_recent_measurement_ph()
 
+    @unpack_namespace
+    def generate_conversion_info(self, measurement_id: str):
+        self.storage.calculate_ph(measurement_id, write_data = True)
+
     def show_most_recent_calibration_ph(self):
             calibration_ph = self.storage.get_most_recent_calibration_ph()
             print(f"Showing the pH value being stored for the most recent calibration run. To see the associated voltages, use 'show -c'.")

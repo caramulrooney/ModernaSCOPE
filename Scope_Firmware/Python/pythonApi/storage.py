@@ -8,6 +8,7 @@ from os.path import exists
 from uuid import uuid4
 from typing import Optional
 import numpy as np
+from pathlib import Path
 
 class Storage():
     my_tz = timezone('US/Eastern')
@@ -18,7 +19,7 @@ class Storage():
         self.calibration_data_filename = Config.calibration_data_filename
         self.sensor_data_filename = Config.sensor_data_filename
         self.ph_data_filename = Config.ph_data_filename
-        self.calibration_map_filename = Config.calibration_map_filename
+        self.calibration_map_folder = Config.calibration_map_folder
 
         if exists(self.calibration_data_filename):
             self.calibration_data = pd.read_csv(
@@ -74,7 +75,7 @@ class Storage():
         columns.extend([f"ph_electrode_{i}" for i in range(N_ELECTRODES)])
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
-    def add_calibration(self, ph: float, voltages: list[Optional[float]]) -> str:
+    def add_calibration(self, ph: float, voltages: list[Optional[float]], write_data: bool = True) -> str:
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
@@ -91,10 +92,11 @@ class Storage():
         new_row_df = pd.DataFrame(new_row_values).dropna(axis = "columns").set_index("timestamp")
         self.calibration_data = pd.concat([self.calibration_data if not self.calibration_data.empty else None, new_row_df], axis = "index")
         self.calibration_map = {}
-        self.write_data()
+        if write_data:
+            self.write_data()
         return str(guid)
 
-    def add_measurement(self, voltages: list[Optional[float]]) -> str:
+    def add_measurement(self, voltages: list[Optional[float]], write_data: bool = True) -> str:
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
@@ -109,7 +111,8 @@ class Storage():
         self.sensor_data = pd.concat([self.sensor_data if not self.sensor_data.empty else None, new_row_df], axis = "index")
         self.calculate_ph(str(guid))
 
-        self.write_data()
+        if write_data:
+            self.write_data()
         return str(guid)
 
     def write_data(self):
@@ -121,9 +124,17 @@ class Storage():
             if len(self.calibration_map) == 0:
                 # after a calibration or some other operation which left self.calibration_map empty, erase the file
                 calibration_map_df = pd.DataFrame()
-            else:
-                calibration_map_df = self.calibration_map_to_dataframe(self.calibration_map)
-            calibration_map_df.to_csv(self.calibration_map_filename, index_label = calibration_map_df.index.name)
+                return
+
+            calibration_map_df = self.calibration_map_to_dataframe(self.calibration_map)
+            calibration_map_guid = calibration_map_df.index.name
+            calibration_map_ts = self.sensor_data[self.sensor_data["guid"] == calibration_map_guid].index[0]
+            calibration_map_name = f"{calibration_map_ts.strftime('%Y_%m_%d_%H_%M_%S_%f')}_Measurement_ID_({calibration_map_guid}).csv"
+            # calibration_map_name = f"2024-03-20:50.5g.csv"# GUID( {calibration_map_guid} ).csv"
+            print("Calibration map name is ")
+            print(calibration_map_name)
+            calibration_map_path = Path(self.calibration_map_folder) / calibration_map_name
+            calibration_map_df.to_csv(str(calibration_map_path), index = False)
 
         except PermissionError:
             # bump it to the top level program
@@ -147,7 +158,7 @@ class Storage():
         # )
         # print(calibration_map_df)
         pivoted_df = self.pivot_calibration_map_df(calibration_map_df)
-        pivoted_df.index.rename(f"Measurement ID: {measurement_guid}", inplace = True)
+        pivoted_df.index.rename(measurement_guid, inplace = True)
         pivoted_df.insert(loc = 1, column = "All electrodes", value = pivoted_df.all(axis = "columns"))
 
         return pivoted_df
