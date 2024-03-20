@@ -29,7 +29,7 @@ class SessionRunner():
     command_list = {
         "measure": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-t', '--time_interval', '-s', '--show', '-v', '--voltage', ]),
         "calibrate": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-t', '--time_interval', '-s', '--show', '-v', '--voltage', ]),
-        "show": WordCompleter(['-i', '--ids', '-e', '--electrodes', '-c', '--calibration', '-c', '--calibration', '-p', '--ph', ]),
+        "show": WordCompleter(['-i', '--ids', '-e', '--electrodes', '-cv', '--calibration_voltage', '-cp', '--calibration_ph', '-p', '--ph', '-v', '--voltage']),
         "load": WordCompleter(['-f', '--file', ]),
         "write": WordCompleter(['-f', '--file', ]),
         "conversion_info": WordCompleter(['-m', '--measurement_id', ]),

@@ -115,12 +115,12 @@ class Sensor():
         print(f"Wrote data to the files specified in '{config_filename}'.")
 
     @unpack_namespace
-    def show(self, ids: bool, electrodes: str, calibration: bool, voltage: bool, ph: bool):
+    def show(self, ids: bool, electrodes: str, calibration_voltage: bool, calibration_ph: bool, voltage: bool, ph: bool):
         show_electrodes: bool = electrodes != ""
-        if sum([ids, show_electrodes, calibration, voltage, ph]) > 1:
+        if sum([ids, show_electrodes, calibration_voltage, calibration_ph, voltage, ph]) > 1:
             print("Please select only one option at a time.")
             return
-        if sum([ids, show_electrodes, calibration, voltage, ph]) < 1:
+        if sum([ids, show_electrodes, calibration_voltage, calibration_ph, voltage, ph]) < 1:
             ids = True
         if ids:
             ElectrodeNames.ascii_art_electrode_ids()
@@ -129,8 +129,10 @@ class Sensor():
             electrode_ids = ElectrodeNames.parse_electrode_input(electrodes)
             ElectrodeNames.ascii_art_selected(electrode_ids)
             return
-        if calibration:
+        if calibration_voltage:
             self.show_most_recent_calibration_voltage()
+        if calibration_ph:
+            self.show_most_recent_calibration_ph()
         if voltage:
             self.show_most_recent_measurement_voltage()
         if ph:
