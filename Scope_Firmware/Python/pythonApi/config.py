@@ -7,7 +7,7 @@ class Config():
     sensor_data_filename = "sensor_data/sensor_data.csv"
     ph_data_filename = "sensor_data/ph_data.csv"
     calibration_map_folder = "sensor_data/calibration_map/"
-    prompt_history_filename = "settings/promp_history.txt"
+    prompt_history_filename = "settings/prompt_history.txt"
     timezone = "US/Eastern"
     debug = False
 
