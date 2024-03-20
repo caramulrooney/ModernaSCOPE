@@ -4,5 +4,6 @@
   "ph_data_filename": "sensor_data/ph_data.csv",
   "calibration_map_filename": "sensor_data/calibration_map.csv",
   "prompt_history_filename": "settings/promp_history.txt",
+  "timezone": "US/Eastern",
   "debug": false
 }

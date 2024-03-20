@@ -3,6 +3,7 @@ import datetime as dt
 from pytz import timezone
 from config import Config
 from constants import N_ELECTRODES, MIN_CALIBRATIONS_RECOMMENDED
+import constants
 from os.path import exists
 from uuid import uuid4
 from typing import Optional
@@ -19,10 +20,6 @@ class CalibrationError(Exception):
     """
 
 class Storage():
-    my_tz = timezone('US/Eastern')
-    max_calibration_time = dt.timedelta(hours = 12)
-    ph_epsilon = 0.5
-
     def __init__(self):
         """
         Initialize CSV files for permanent data storage, or load their contents into memory if they exist.
@@ -108,7 +105,7 @@ class Storage():
         Insert a new row in self.calibration_data with the given pH value and a list of electrode voltages. Electrode voltages should be passed as a list of 96 numbers, with None for the electrodes that are excluded. Create the necessary metadata for the record, including a unique GUID and timestamp. Automatically write the new row to the CSV file `calibration_data_filename` unless `write_data` is set to `False`.
         """
         assert(len(voltages) == N_ELECTRODES)
-        timestamp = dt.datetime.now(tz = self.my_tz)
+        timestamp = dt.datetime.now(tz = timezone(Config.timezone))
         guid = uuid4()
 
         new_row_values = {
@@ -132,7 +129,7 @@ class Storage():
         Insert a new row in self.measurement_data with a list of electrode voltages. Electrode voltages should be passed as a list of 96 numbers, with None for the electrodes that are excluded. Create the necessary metadata for the record, including a unique GUID and timestamp. Automatically write the new row to the CSV file `sensor_data_filename` unless `write_data` is set to `False`. Automatically call self.calculate_ph() to insert a corresponding row in self.ph_data and write that to the CSV file `ph_data_filename` as well.
         """
         assert(len(voltages) == N_ELECTRODES)
-        timestamp = dt.datetime.now(tz = self.my_tz)
+        timestamp = dt.datetime.now(tz = timezone(Config.timezone))
         guid = uuid4()
 
         new_row_values = {
@@ -150,6 +147,11 @@ class Storage():
         return str(guid)
 
     def write_data(self):
+        """
+        Write calibration data, measurement data, and converted pH data stored in memory to their respective CSV files. For the calibration map file, create a new file name by combining the timestamp and the measurement guid of the measurement being converted.
+
+        In case of a PermissionError, which occurs when one of the required files is open in another program, raise a StorageWritePermissionError which is handled by the top-level prompt script to ask the user to close the other program and retry.
+        """
         try:
             self.calibration_data.to_csv(self.calibration_data_filename)
             self.sensor_data.to_csv(self.sensor_data_filename)
@@ -173,22 +175,37 @@ class Storage():
             # bump it to the top level program
             raise StorageWritePermissionError
 
-    def calibration_map_to_dataframe(self, calibration_map) -> pd.DataFrame:
-        # convert calibration_map into a dataframe by normalizing the lengths of all of its arrays
+    def calibration_map_to_dataframe(self, calibration_map: dict[str: list[str]]) -> pd.DataFrame:
+        """
+        Convert conversion data into the desired format for the calibration map CSV file.
+
+        In the conversion process, a list of calibration data points are used in the calculation of each electrode, and this list may be different depending on the calibration history for each electrode. For example, if a more recent calibration were performed but only on a subset of the electrodes, then the rest of the electrodes would use the older calibration data, provided it was still valid (taken less than 12 hours prior).
+
+        Take in a dictionary which maps each electrode id to the list of calibration guids used in its conversion, and convert it into a row-wise boolean dataframe, where each row is a unique calibration guid, each column is a different electrode, and the cells are true or false based on whether that calibration guid was used in conversion of that electrode.
+
+        Also include other metadata, such as whether a certain calibration guid was used for all electrodes or only some of them. The index.name property is the assigned to be guid of the measurement being converted. This is a convenient way to pass this data out of hte function rather than returning a tuple.
+        """
+        # extract the measurement guid and remove it from the dictionary
         measurement_guid = calibration_map["measurement_guid"]
         calibration_map_no_guid = dict(calibration_map) # make a copy so we can delete the guid entry
         del calibration_map_no_guid["measurement_guid"]
 
+        # convert calibration_map into a dataframe by normalizing the lengths of all of its arrays
         max_len = max([len(val) for key, val in calibration_map_no_guid.items()])
         normalized_len_calibration_map = {key: sorted(val) + [None] * (max_len - len(val)) for key, val in calibration_map_no_guid.items()}
         calibration_map_df = pd.DataFrame(normalized_len_calibration_map)
+
+        # convert to row-wise boolean dataframe for saving
         pivoted_df = self.pivot_calibration_map_df(calibration_map_df)
         pivoted_df.index.rename(measurement_guid, inplace = True)
-        pivoted_df.insert(loc = 1, column = "All electrodes", value = pivoted_df.all(axis = "columns"))
+        pivoted_df.insert(loc = 2, column = "All electrodes", value = pivoted_df.all(axis = "columns"))
 
         return pivoted_df
 
     def pivot_calibration_map_df(self, calibration_map_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Intermediate function to break up `self.calibration_map_to_dataframe`. Take in a dataframe where each column contains the list of the calibration ids used in the conversion of that measurement (padded with None so all columns have the same length), and return a row-wise boolean dataframe where each row is a unique calibration guid, each column is a different electrode, and the cells are true or false based on whether that calibration guid was used in conversion of that electrode.
+        """
         pivoted_df = calibration_map_df.iloc[0:0]
         unique_guids = pd.melt(calibration_map_df)["value"].unique()
 
@@ -199,6 +216,9 @@ class Storage():
             if guid is None:
                 continue
             new_row_df = pd.DataFrame(calibration_map_df.eq(guid).any(axis = "index")).T
+            new_row_df.insert(loc = 0, column = "Calibration pH",
+                value = self.calibration_data[self.calibration_data["guid"] == guid]["calibration_ph"].iloc[0]
+            )
             new_row_df.insert(loc = 0, column = "Calibration ID", value = guid)
             pivoted_df = pd.concat([pivoted_df if not pivoted_df.empty else None, new_row_df], axis = "index")
         return pivoted_df
@@ -218,7 +238,7 @@ class Storage():
         measurement_ts =  measurement_df.index[0]
         relevant_calibration_data = self.calibration_data[
             (self.calibration_data.index < measurement_ts) &
-            (self.calibration_data.index > measurement_ts - self.max_calibration_time) &
+            (self.calibration_data.index > measurement_ts - constants.max_calibration_time) &
             (self.calibration_data["is_valid"])
         ]
         return relevant_calibration_data
@@ -227,7 +247,7 @@ class Storage():
         """
         Given a list of the most recent pH calibration values, determine if an older calibration pH value is close enough to any of the more recent values to be considered a duplicate. For example, if there are more recent pH calibration values of 4 and 7, then pH values of 4.1 or 7.1 would be considered duplicates, whereas a pH value of 10 would be accepted.
         """
-        return any(abs(np.array(ph_list) - ph) < self.ph_epsilon)
+        return any(abs(np.array(ph_list) - ph) < constants.ph_epsilon)
 
     def calibration_list_for_electrode(self, electrode_id: int, relevant_calibration_data: pd.DataFrame) -> pd.DataFrame:
         """

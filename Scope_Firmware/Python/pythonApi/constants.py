@@ -1,4 +1,5 @@
 from enum import Enum
+import datetime as dt
 
 N_ELECTRODES = 96
 N_COLUMNS = 12
@@ -7,6 +8,9 @@ ROW_LETTERS = "ABCDEFGH"
 COL_NUMBERS = "0123456789"
 ALL_ELECTRODES_KEYWORD = "all"
 MIN_CALIBRATIONS_RECOMMENDED = 3
+
+max_calibration_time = dt.timedelta(hours = 12)
+ph_epsilon = 0.5
 
 class SelectionType(Enum):
     ROW_WISE = 0

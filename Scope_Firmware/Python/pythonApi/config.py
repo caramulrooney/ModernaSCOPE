@@ -8,6 +8,7 @@ class Config():
     ph_data_filename = "sensor_data/ph_data.csv"
     calibration_map_folder = "sensor_data/calibration_map/"
     prompt_history_filename = "settings/promp_history.txt"
+    timezone = "US/Eastern"
     debug = False
 
     @classmethod
@@ -30,6 +31,8 @@ class Config():
             cls.calibration_map_folder = data["calibration_map_folder"]
         if "prompt_history" in data.keys():
             cls.prompt_history_filename = data["prompt_history_filename"]
+        if "timezone" in data.keys():
+            cls.timezone = data["timezone"]
         if "debug" in data.keys():
             cls.debug = data["debug"]
 
