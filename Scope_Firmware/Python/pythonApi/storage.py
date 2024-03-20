@@ -184,6 +184,26 @@ class Storage():
         Take in a dictionary which maps each electrode id to the list of calibration guids used in its conversion, and convert it into a row-wise boolean dataframe, where each row is a unique calibration guid, each column is a different electrode, and the cells are true or false based on whether that calibration guid was used in conversion of that electrode.
 
         Also include other metadata, such as whether a certain calibration guid was used for all electrodes or only some of them. The index.name property is the assigned to be guid of the measurement being converted. This is a convenient way to pass this data out of hte function rather than returning a tuple.
+
+        Input example:
+        ```
+        {
+            'measurement_guid': 'my_measurement_guid',
+            'electrode_1': [cal_guid 1],
+            'electrode_2': [cal_guid 1],
+            ... ,
+            'electrode_95': [cal_guid 2, cal_guid 1]
+        }
+        ```
+
+        Output example:
+        ```
+                               Calibration ID  Calibration pH  ...  electrode_94  electrode_95
+        'my_measurement_guid'
+              (as index name)
+        0                          cal_guid 2             8.0  ...         False          True
+        0                          cal_guid 1             5.0  ...          True          True
+        ```
         """
         # extract the measurement guid and remove it from the dictionary
         measurement_guid = calibration_map["measurement_guid"]
@@ -205,6 +225,20 @@ class Storage():
     def pivot_calibration_map_df(self, calibration_map_df: pd.DataFrame) -> pd.DataFrame:
         """
         Intermediate function to break up `self.calibration_map_to_dataframe`. Take in a dataframe where each column contains the list of the calibration ids used in the conversion of that measurement (padded with None so all columns have the same length), and return a row-wise boolean dataframe where each row is a unique calibration guid, each column is a different electrode, and the cells are true or false based on whether that calibration guid was used in conversion of that electrode.
+
+        Input example:
+        ```
+           electrode_1  electrode_2  electrode_3  ...  electrode_95
+        0   cal_guid_1   cal_guid_1   cal_guid_1  ...    cal_guid_1
+        1         None         None         None  ...    cal_guid_2
+        ```
+
+        Output example:
+        ```
+           Calibration ID  Calibration pH  electrode_1  electrode_2  ...  electrode_95
+        0      cal_guid_1             5.0         True         True  ...          True
+        0      cal_guid_2             8.0        False        False  ...          True
+        ```
         """
         pivoted_df = calibration_map_df.iloc[0:0]
         unique_guids = pd.melt(calibration_map_df)["value"].unique()
