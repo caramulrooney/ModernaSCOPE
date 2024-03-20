@@ -1,22 +1,43 @@
 from constants import SelectionType, N_COLUMNS, N_ELECTRODES, ROW_LETTERS
 import numpy as np
 
+class ElectrodeNameParseError(ValueError):
+    """
+    Represents an electrode name parsing error.
+    """
+
 class ElectrodeNames():
+    """
+    Collection of functions for converting electrode names back and forth between battleship notation (A1-H12) and electrode ids (0-95). This class contains only class methods, so it never needs to be instantiated.
+    """
+
     @classmethod
     def __id_to_row_col(cls, electrode_id: int) -> tuple[int, int]:
+        """
+        Given an electrode id, such as `0` or `95`, return a tuple indicating the corresponding row and column of the electrode, such as (0, 0) or (7, 11).
+        """
         row = electrode_id // N_COLUMNS
         col = electrode_id %  N_COLUMNS
         return row, col
 
     @classmethod
     def __select_range(cls, battleship_range: str, selection_type: SelectionType) -> list[int]:
+        """
+        Given a string representing two electrodes separated by a `-`, for example `A1-B5`, return a list of the electrodes that fall within that range using the appropriate selection method. The order of the electrodes doesn't matter.
+
+        For `ROW_WISE` selection, start at the start cell and move rightward until the end cell is reached, wrapping right-to-left as necessary. For `A1-B2`, return the electrode ids corresponding to [A1, A2, ... A12, B1, B2].
+
+        For `COLUMN_WISE` selection, start at the start cell and move downward until the end cell is reached, wrapping bottom-to-top as necessary. For `A1-B2`, return the electrode ids corresponding to [A1, B1, C1, ... H1, A2, B2].
+
+        For `EXCEL_LIKE` selection, select cells in a box, with the start cell as the top-left corner and the end cell as the bottom-right corner. For `A1-B2`, return the electrode ids corresponding to [A1, A2, B1, B2].
+        """
         try:
             battleships = battleship_range.split("-")
             assert len(battleships) == 2
             start = cls.__from_battleship_notation(battleships[0])
             end = cls.__from_battleship_notation(battleships[1])
         except AssertionError:
-            print(f"Could not parse electrode input '{battleship_range}'. Reason: range must contain exactly one '-' character.")
+            raise ElectrodeNameParseError(f"Could not parse electrode input '{battleship_range}'. Reason: range must contain exactly one '-' character.")
 
         tmp_start_row, tmp_start_col = cls.__id_to_row_col(start)
         tmp_end_row, tmp_end_col = cls.__id_to_row_col(end)
@@ -46,7 +67,7 @@ class ElectrodeNames():
     @classmethod
     def __from_battleship_notation(cls, battleship: str) -> int:
         """
-        Given a 2 or 3 character string containing a single battleship notation, such as `A1` or `B12`, convert it into an integer representing the elecrode id, such as `0` or `23`.
+        Given a 2 or 3 character string containing a single battleship notation, such as `A1` or `B12`, convert it into an integer representing the elecrode id, such as `0` or `23`. Also accept a string representing a raw integer 0-95 and returns that integer. If parsing fails, print an error message to the screen and raise an ElectrodeNameParseError.
         """
         battleship = battleship.lower()
 
@@ -62,13 +83,10 @@ class ElectrodeNames():
                 col_num = int(battleship[1:])
                 electrode_id = row_num * N_COLUMNS + col_num - 1
             except AssertionError:
-                print(f"Could not parse electrode input '{battleship}'")
-                return 0
+                raise ElectrodeNameParseError(f"Could not parse electrode input '{battleship}'")
         if electrode_id >= 0 and electrode_id < N_ELECTRODES:
             return electrode_id
-        # else:
-        print(f"Parsed an electrode input '{battleship} that was out of bounds (evaluated to {electrode_id}).")
-        return 0
+        raise ElectrodeNameParseError(f"Parsed an electrode input '{battleship} that was out of bounds (evaluated to {electrode_id}).")
 
     @classmethod
     def parse_electrode_input(cls, input: str, selection_type: SelectionType = SelectionType.ROW_WISE) -> list[int]:
@@ -103,10 +121,16 @@ class ElectrodeNames():
 
     @classmethod
     def ascii_art_electrode_ids(cls) -> None:
+        """
+        Draw a diagram of the electrode using ASCII art, where each electrode is labeled with its numerical electrode_id. Print the result to the terminal immediately.
+        """
         print(cls.electrode_ascii_art(["~ " + str(x) + " ~" for x in range(N_ELECTRODES)]))
 
     @classmethod
     def ascii_art_selected(cls, electrode_ids: list[int]) -> None:
+        """
+        Draw a diagram of the electrode using ASCII art, with each electrode either displaying 'Yes' if it is selected or a placeholder if it is not. As input, take a list of integers representing which electrode ids are selected, such as [0, 1, 2] or [50, 45, 95]. Print the result to the terminal immediately.
+        """
         selected = []
         for electrode_id in range(N_ELECTRODES):
             if electrode_id in electrode_ids:
@@ -117,6 +141,9 @@ class ElectrodeNames():
 
     @classmethod
     def electrode_ascii_art(cls, vals: any) -> str:
+        """
+        Draw a diagram of the electrode using ASCII art, with a certain string being displayed for each electrode. As input, take a list of N_ELECTRODES strings, each of which must be at most 7 characters long. Return a multi-line string containing the ASCII art.
+        """
         assert len(vals) == N_ELECTRODES
 
         max_len = 7
@@ -155,6 +182,9 @@ class ElectrodeNames():
 
     @classmethod
     def run_unit_tests(cls):
+        """
+        Run a collection of unit tests on the core functionality of the functions in this class.
+        """
         print("Starting unit tests for from_battleship_notation()")
         assert cls.__from_battleship_notation("A1") == 0
         assert cls.__from_battleship_notation("A5") == 4

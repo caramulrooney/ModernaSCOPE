@@ -6,6 +6,7 @@ from constants import init_text_art
 from commands import Commands
 from lexer import CustomLexer, YesNoLexer
 from storage import StorageWritePermissionError, CalibrationError
+from electrode_names import ElectrodeNameParseError
 from config import Config
 
 def handle_storage_write_exception(func):
@@ -17,12 +18,14 @@ def handle_storage_write_exception(func):
             self.retry_file_write()
     return inner_func
 
-def handle_calibration_exception(func):
+def handle_non_fatal_exception(func):
     def inner_func(self, *args, **kwargs):
         try:
             func(self, *args ,**kwargs)
-        except CalibrationError:
-            print("No valid calibration points are available. A pH conversion cannot occur.")
+        except CalibrationError as ex:
+            print(ex)
+        except ElectrodeNameParseError as ex:
+            print(ex)
     return inner_func
 
 class SessionRunner():
@@ -55,7 +58,7 @@ class SessionRunner():
             print("Invalid response.")
 
     @handle_storage_write_exception
-    @handle_calibration_exception
+    @handle_non_fatal_exception
     def execute(self, text):
         self.commands.execute(text)
 

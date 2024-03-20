@@ -2,7 +2,7 @@ import pandas as pd
 import datetime as dt
 from pytz import timezone
 from config import Config
-from constants import N_ELECTRODES
+from constants import N_ELECTRODES, MIN_CALIBRATIONS_RECOMMENDED
 from os.path import exists
 from uuid import uuid4
 from typing import Optional
@@ -219,10 +219,10 @@ class Storage():
 
     def calculate_ph(self, measurement_guid: str, write_data: bool = False) -> str:
         relevant_calibration_data = self.get_relevant_calibration_data(measurement_guid)
-        if len(relevant_calibration_data.index) < 3:
-            print("Warning: Fewer than 3 valid calibration points are available (calibrations are only valid for 12 hours and may be invalidated for other reasons). It is strongly suggested that you re-calibrate the sensor.")
+        if len(relevant_calibration_data.index) < MIN_CALIBRATIONS_RECOMMENDED:
+            print(f"WARNING: Fewer than {MIN_CALIBRATIONS_RECOMMENDED} valid calibration points are available (calibrations are only valid for 12 hours and may be invalidated for other reasons). It is strongly suggested that you re-calibrate the sensor.")
         if len(relevant_calibration_data.index) <= 0:
-            raise CalibrationError
+            raise CalibrationError("No valid calibration points are available. A pH conversion cannot occur.")
 
         measurement_df = self.sensor_data[self.sensor_data["guid"] == measurement_guid]
         assert len(measurement_df.index) == 1
