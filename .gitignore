@@ -18,4 +18,4 @@ fp-info-cache# Netlist files (exported from Eeschema)
 __pycache__/
 Scope_Firmware/Python/pythonApi/sensor_data/
 Scope_Firmware/Python/pythonApi/TEST_sensor_data/
-Scope_Firmware/Python/pythonApi/config.json
+Scope_Firmware/Python/pythonApi/settings/prompt_history.txt
