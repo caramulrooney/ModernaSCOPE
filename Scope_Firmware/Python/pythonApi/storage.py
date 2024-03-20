@@ -24,6 +24,17 @@ class Storage():
     ph_epsilon = 0.5
 
     def __init__(self):
+        """
+        Initialize CSV files for permanent data storage, or load their contents into memory if they exist.
+
+        `calibration_data_filename`: CSV file to store a historical record of every calibration that has been performed. Only calibrations more recent than 12 hours will be used. There is also a field in the CSV file called `is_valid`; use this to mark calibration attempts that should be ignored without deleting rows from the table. Each calibration has a unique GUID and a timestamp associated with it.
+
+        `sensor_data_filename`: CSV file to store a historical record of every measurement that has been performed. Only the raw measured voltage is stored in this file. The voltages can be converted into pH values in post-processing (and indeed, this processing is dones automatically and stored in a separate file called `ph_data_filename`. Each voltage measurement has a unique GUID and a timestamp associated with it.
+
+        `ph_data_filename`: CSV file containing the pH values at each electrode that have been calculated during post-processing of the electrode voltages in `sensor_data_filename`. The GUID and timestamp of each entry in `ph_data_filename` is shared with a row in that table.
+
+        `calibration_map_folder`: A calibration map is a CSV file documenting which calibration data points were used to calculate the pH of a given measurement. Each time a measurement is converted into a pH, a new file is created in this folder with a name consisting of a timestamp and a GUID corresponding to the measurement ID.
+        """
         self.calibration_data_filename = Config.calibration_data_filename
         self.sensor_data_filename = Config.sensor_data_filename
         self.ph_data_filename = Config.ph_data_filename
@@ -57,6 +68,9 @@ class Storage():
 
 
     def make_calibration_data_file(self) -> pd.DataFrame:
+        """
+        Initialize a dataframe to hold calibration data, including columns for metadata and one column for the voltage at each electrode during calibration. Return the empty dataframe.
+        """
         columns = [
             "timestamp",
             "guid",
@@ -68,6 +82,9 @@ class Storage():
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
     def make_sensor_data_file(self) -> pd.DataFrame:
+        """
+        Initialize a dataframe to hold measurement data, including columns for metadata and one column for the voltage at each electrode during the measurement. Return the empty dataframe.
+        """
         columns = [
             "timestamp",
             "guid",
@@ -76,6 +93,9 @@ class Storage():
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
     def make_ph_data_file(self) -> pd.DataFrame:
+        """
+        Initialize a dataframe to hold pH data, including columns for metadata and one column for the pH at each electrode resulting from the voltage-to-pH conversion. Return the empty dataframe.
+        """
         columns = [
             "timestamp",
             "guid",
@@ -84,6 +104,9 @@ class Storage():
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
     def add_calibration(self, ph: float, voltages: list[Optional[float]], write_data: bool = True) -> str:
+        """
+        Insert a new row in self.calibration_data with the given pH value and a list of electrode voltages. Electrode voltages should be passed as a list of 96 numbers, with None for the electrodes that are excluded. Create the necessary metadata for the record, including a unique GUID and timestamp. Automatically write the new row to the CSV file `calibration_data_filename` unless `write_data` is set to `False`.
+        """
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
@@ -105,6 +128,9 @@ class Storage():
         return str(guid)
 
     def add_measurement(self, voltages: list[Optional[float]], write_data: bool = True) -> str:
+        """
+        Insert a new row in self.measurement_data with a list of electrode voltages. Electrode voltages should be passed as a list of 96 numbers, with None for the electrodes that are excluded. Create the necessary metadata for the record, including a unique GUID and timestamp. Automatically write the new row to the CSV file `sensor_data_filename` unless `write_data` is set to `False`. Automatically call self.calculate_ph() to insert a corresponding row in self.ph_data and write that to the CSV file `ph_data_filename` as well.
+        """
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = self.my_tz)
         guid = uuid4()
@@ -180,10 +206,13 @@ class Storage():
 
     def get_relevant_calibration_data(self, measurement_guid: str) -> pd.DataFrame:
         """
+        Filter stored calibration data and return relevant rows.
         Relevant calibration data must
         1) be valid (the `is_valid` flag is set to `True`), meaning it has not been dropped by the user
         2) have been collected prior to the time of the measurement in question, and
         3) have been collected no more than 12 hours before the measurement for the calibration to be valid.
+
+        Return a dataframe containing the relevant rows of the calibration data table.
         """
         measurement_df = self.sensor_data[self.sensor_data["guid"] == measurement_guid]
         measurement_ts =  measurement_df.index[0]
@@ -195,9 +224,17 @@ class Storage():
         return relevant_calibration_data
 
     def is_close_to_another_ph(self, ph_list: list[float], ph: float):
+        """
+        Given a list of the most recent pH calibration values, determine if an older calibration pH value is close enough to any of the more recent values to be considered a duplicate. For example, if there are more recent pH calibration values of 4 and 7, then pH values of 4.1 or 7.1 would be considered duplicates, whereas a pH value of 10 would be accepted.
+        """
         return any(abs(np.array(ph_list) - ph) < self.ph_epsilon)
 
     def calibration_list_for_electrode(self, electrode_id: int, relevant_calibration_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        For a single electrode, filter the calibration data to contain only the most recent calibration data point at each pH. For example, if there are multiple calibrations that occurred at ph 7, select only the most recent one. Calibration values with very similar pH (such as 7 and 7.1) will be treated as the same and only the most recent one will be used. `self.is_close_to_another_ph()` determines what qualifies as similar enough to be a duplicate calibration.
+
+        Return a dataframe containing only the non-duplicate rows of the calibration data table.
+        """
         # prepare dataframe
         df = relevant_calibration_data.copy()[["guid", "calibration_ph", f"V_calibration_{electrode_id}"]]
         df.rename(columns = {"calibration_ph": "ph", f"V_calibration_{electrode_id}": "voltage"}, inplace = True)
@@ -212,12 +249,18 @@ class Storage():
         return df
 
     def calibration_list_to_ph(self, calibration_list: pd.DataFrame, measured_voltage: float) -> float:
+        """
+        Given a dataframe representing the pH and voltage of the most recent calibration data at a single electrode, calculate the pH value for a new voltage measurement at that electrode. Return the pH value.
+        """
         df = calibration_list.copy().sort_values("ph", ascending = True)
         if not np.all(np.diff(df["voltage"])):
             print(f"WARNING: Calibration voltages are not monotonic with pH. It is strongly suggested that you re-calibrate the sensor. Check the file {self.calibration_data_filename} to see details of the calibrations or to flag certain calibrations as invalid.")
         return np.interp(measured_voltage, df["voltage"], df["ph"])
 
     def calculate_ph(self, measurement_guid: str, write_data: bool = False) -> str:
+        """
+        Insert a new row in self.ph_data using measurement data corresponding to `measurement_guid`. Since this function is normally called from `self.add_measurement()` which takes care of writing data, this function does not write to a file automatically unless `write_data` is set to `True`.
+        """
         relevant_calibration_data = self.get_relevant_calibration_data(measurement_guid)
         if len(relevant_calibration_data.index) < MIN_CALIBRATIONS_RECOMMENDED:
             print(f"WARNING: Fewer than {MIN_CALIBRATIONS_RECOMMENDED} valid calibration points are available (calibrations are only valid for 12 hours and may be invalidated for other reasons). It is strongly suggested that you re-calibrate the sensor.")
@@ -263,11 +306,17 @@ class Storage():
         return measurement_guid
 
     def get_most_recent_calibration_ph(self) -> float:
+        """
+        Return the pH value of the most recent calibration.
+        """
         last_row = self.calibration_data.sort_index(ascending = True).tail(1)
         calibration_ph = last_row["calibration_ph"].iloc[0]
         return calibration_ph
 
     def get_most_recent_calibration(self) -> list[Optional[float]]:
+        """
+        Return a list of the voltages at each electrode for the most recent calibration. For excluded electrodes, the corresponding entry is None.
+        """
         last_row = self.calibration_data.sort_index(ascending = True).tail(1)
         calibration_values = []
         for electrode_id in range(N_ELECTRODES):
@@ -276,6 +325,9 @@ class Storage():
         return calibration_values
 
     def get_most_recent_measurement(self) -> list[Optional[float]]:
+        """
+        Return a list of the voltages at each electrode for the most recent measurement. For excluded electrodes, the corresponding entry is None.
+        """
         last_row = self.sensor_data.sort_index(ascending = True).tail(1)
         voltage_values = []
         for electrode_id in range(N_ELECTRODES):
@@ -284,6 +336,9 @@ class Storage():
         return voltage_values
 
     def get_most_recent_ph(self) -> list[Optional[float]]:
+        """
+        Return a list of the pH values at each electrode for the most recent conversion. For excluded electrodes, the corresponding entry is None.
+        """
         last_row = self.ph_data.sort_index(ascending = True).tail(1)
         ph_values = []
         for electrode_id in range(N_ELECTRODES):
