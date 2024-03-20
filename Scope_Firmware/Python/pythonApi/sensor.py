@@ -1,5 +1,6 @@
 import inspect
 from storage import Storage
+from config import Config
 from numpy.random import rand
 import numpy as np
 from config import N_ELECTRODES
@@ -106,9 +107,18 @@ class Sensor():
         print(f"Inside of calibrate, {electrodes=}, {ph=}, {all=}")
 
     @unpack_namespace
-    def reload_files(self):
+    def reload_files(self, config_filename):
         print(f"Inside of reload_files")
+        if not len(config_filename) == 0:
+            Config.set_config(config_filename)
         self.storage = Storage()
+
+    @unpack_namespace
+    def write_files(self, config_filename):
+        print(f"Inside of reload_files")
+        if not len(config_filename) == 0:
+            Config.set_config(config_filename)
+        self.storage.write_data()
 
     @unpack_namespace
     def show(self, ids: bool, electrodes: str, calibration: bool, voltage: bool, ph: bool):

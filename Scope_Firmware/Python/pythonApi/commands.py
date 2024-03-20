@@ -3,11 +3,8 @@ from sensor import Sensor
 SPLIT_CHARS = " "
 
 class Commands():
-    def __init__(self, sensor = None):
-        if sensor is None:
-            self.sensor = Sensor()
-        else:
-            self.sensor = sensor
+    def __init__(self):
+        self.sensor = Sensor()
 
         self.parser = ArgumentParser(prog="", exit_on_error = False, description =
     """This is the pH sensor command-line interface. To run, type one of the positional arguments followed by parameters and flags as necessary. For example, try running `# measure -vn` to measure the voltages at each of the electrodes. Type any command with the -h flag to see the options for that command.""")
@@ -89,4 +86,10 @@ class Commands():
 
         load_parser = self.subparsers.add_parser("load", prog = "load", exit_on_error = exit_on_error, description =
     """Re-load the csv file for calibration data from memory.""")
+        show_parser.add_argument('-f', '--file', type = str, default = "", help = "Re-load files from the specified JSON configuration file. Default is the configuration file used to initialize the program.")
         load_parser.set_defaults(func = self.sensor.reload_files)
+
+        write_parser = self.subparsers.add_parser("write", prog = "write", exit_on_error = exit_on_error, description =
+    """Write the currently stored data to a csv file. This should be done automatically after every measurement and calibration, except when a file write fails because the file was open in another program at the same time.""")
+        write_parser.add_argument('-f', '--file', type = str, default = "", help = "Write files to the filenames specified in the JSON configuration file. Default is the configuration file used to initialize the program.")
+        write_parser.set_defaults(func = self.sensor.write_files)

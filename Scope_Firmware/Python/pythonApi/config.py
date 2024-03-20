@@ -28,6 +28,11 @@ class Config():
         if "debug" in data.keys():
             cls.debug = data["debug"]
 
+class StorageWritePermissionError(PermissionError):
+    """
+    PermissionError that specifically came from the Storage.write_data() function. This needs its own error type because the top-level program needs to know which function to call back when it receives such an error.
+    """
+
 N_ELECTRODES = 96
 N_COLUMNS = 12
 N_ROWS = 8

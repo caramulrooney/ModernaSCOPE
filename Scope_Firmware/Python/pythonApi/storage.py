@@ -3,7 +3,7 @@ import datetime as dt
 from pytz import timezone
 import dateutil.parser
 import operator
-from config import N_ELECTRODES, Config
+from config import N_ELECTRODES, Config, StorageWritePermissionError
 from os.path import exists
 from uuid import uuid4
 from typing import Optional
@@ -113,16 +113,21 @@ class Storage():
         return str(guid)
 
     def write_data(self):
-        self.calibration_data.to_csv(self.calibration_data_filename)
-        self.sensor_data.to_csv(self.sensor_data_filename)
-        self.ph_data.to_csv(self.ph_data_filename)
+        try:
+            self.calibration_data.to_csv(self.calibration_data_filename)
+            self.sensor_data.to_csv(self.sensor_data_filename)
+            self.ph_data.to_csv(self.ph_data_filename)
 
-        if len(self.calibration_map) == 0:
-            # after a calibration or some other operation which left self.calibration_map empty, erase the file
-            calibration_map_df = pd.DataFrame()
-        else:
-            calibration_map_df = self.calibration_map_to_dataframe(self.calibration_map)
-        calibration_map_df.to_csv(self.calibration_map_filename, index_label = calibration_map_df.index.name)
+            if len(self.calibration_map) == 0:
+                # after a calibration or some other operation which left self.calibration_map empty, erase the file
+                calibration_map_df = pd.DataFrame()
+            else:
+                calibration_map_df = self.calibration_map_to_dataframe(self.calibration_map)
+            calibration_map_df.to_csv(self.calibration_map_filename, index_label = calibration_map_df.index.name)
+
+        except PermissionError:
+            # bump it to the top level program
+            raise StorageWritePermissionError
 
     def calibration_map_to_dataframe(self, calibration_map) -> pd.DataFrame:
         # convert calibration_map into a dataframe by normalizing the lengths of all of its arrays

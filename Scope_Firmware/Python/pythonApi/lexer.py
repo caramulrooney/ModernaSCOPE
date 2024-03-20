@@ -11,3 +11,12 @@ class CustomLexer(RegexLexer):
             (r' -[^- ]+', Name.Tag),
         ]
     }
+
+class YesNoLexer(RegexLexer):
+    tokens = {
+        'root': [
+            (r'Y', Name.Tag),
+            (r'n', Literal.String),
+            (r'.*', Literal),
+        ]
+    }
