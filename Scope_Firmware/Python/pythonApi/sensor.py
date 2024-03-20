@@ -135,16 +135,16 @@ class Sensor():
         self.storage.calculate_ph(measurement_id, write_data = True)
 
     def show_most_recent_calibration_ph(self):
-            calibration_ph = self.storage.get_most_recent_calibration_ph()
-            print(f"Showing the pH value being stored for the most recent calibration run. To see the associated voltages, use 'show -c'.")
-            calibration_values = self.storage.get_most_recent_calibration()
-            print(ElectrodeNames.electrode_ascii_art([f"{calibration_ph:.2f}" if val is not None else None for val in calibration_values]))
+        calibration_ph = self.storage.get_most_recent_calibration_ph()
+        print(f"Showing the pH value being stored for the most recent calibration run. To see the associated voltages, use 'show -c'.")
+        calibration_values = self.storage.get_most_recent_calibration()
+        print(ElectrodeNames.electrode_ascii_art([f"{calibration_ph:.2f}" if val is not None else None for val in calibration_values]))
 
     def show_most_recent_calibration_voltage(self):
-            calibration_ph = self.storage.get_most_recent_calibration_ph()
-            print(f"Showing voltages from the most recent calibration run in Volts. The pH value was {calibration_ph:.2f}.")
-            calibration_values = self.storage.get_most_recent_calibration()
-            print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in calibration_values]))
+        calibration_ph = self.storage.get_most_recent_calibration_ph()
+        print(f"Showing voltages from the most recent calibration run in Volts. The pH value was {calibration_ph:.2f}.")
+        calibration_values = self.storage.get_most_recent_calibration()
+        print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in calibration_values]))
 
     def show_most_recent_measurement_voltage(self):
         print(f"Showing voltages from the most recent measurement in Volts. To see the calculated pH values, use 'show -p'.")
