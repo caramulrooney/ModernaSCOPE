@@ -13,6 +13,10 @@ class StorageWritePermissionError(PermissionError):
     """
     PermissionError that specifically came from the Storage.write_data() function. This needs its own error type because the top-level program needs to know which function to call back when it receives such an error.
     """
+class CalibrationError(Exception):
+    """
+    Too few calibrations exist to meaningfully convert the data.
+    """
 
 class Storage():
     my_tz = timezone('US/Eastern')
@@ -134,9 +138,8 @@ class Storage():
             calibration_map_guid = calibration_map_df.index.name
             calibration_map_ts = self.sensor_data[self.sensor_data["guid"] == calibration_map_guid].index[0]
             calibration_map_name = f"{calibration_map_ts.strftime('%Y_%m_%d_%H_%M_%S_%f')}_Measurement_ID_({calibration_map_guid}).csv"
-            # calibration_map_name = f"2024-03-20:50.5g.csv"# GUID( {calibration_map_guid} ).csv"
-            print("Calibration map name is ")
-            print(calibration_map_name)
+            if Config.debug:
+                print(f"Storing calibration map in file: {calibration_map_name}")
             calibration_map_path = Path(self.calibration_map_folder) / calibration_map_name
             calibration_map_df.to_csv(str(calibration_map_path), index = False)
 
@@ -146,7 +149,6 @@ class Storage():
 
     def calibration_map_to_dataframe(self, calibration_map) -> pd.DataFrame:
         # convert calibration_map into a dataframe by normalizing the lengths of all of its arrays
-        print(calibration_map)
         measurement_guid = calibration_map["measurement_guid"]
         calibration_map_no_guid = dict(calibration_map) # make a copy so we can delete the guid entry
         del calibration_map_no_guid["measurement_guid"]
@@ -154,13 +156,6 @@ class Storage():
         max_len = max([len(val) for key, val in calibration_map_no_guid.items()])
         normalized_len_calibration_map = {key: sorted(val) + [None] * (max_len - len(val)) for key, val in calibration_map_no_guid.items()}
         calibration_map_df = pd.DataFrame(normalized_len_calibration_map)
-        # print(calibration_map_df)
-        # print(calibration_map_df.eq(calibration_map_df.iloc[:, 0], axis = "index"))
-        # print(calibration_map_df.eq(calibration_map_df.iloc[:, 0], axis = "index").all(axis = "columns"))
-        # calibration_map_df.insert(loc = 0, column = "all_guids_equal",
-        #     value = calibration_map_df.eq(calibration_map_df.iloc[:, 0], axis = "index").all(axis = "columns")
-        # )
-        # print(calibration_map_df)
         pivoted_df = self.pivot_calibration_map_df(calibration_map_df)
         pivoted_df.index.rename(measurement_guid, inplace = True)
         pivoted_df.insert(loc = 1, column = "All electrodes", value = pivoted_df.all(axis = "columns"))
@@ -169,12 +164,10 @@ class Storage():
 
     def pivot_calibration_map_df(self, calibration_map_df: pd.DataFrame) -> pd.DataFrame:
         pivoted_df = calibration_map_df.iloc[0:0]
-        # print(pivoted_df)
         unique_guids = pd.melt(calibration_map_df)["value"].unique()
-        # new_row_df = pd.DataFrame(new_row_values).dropna(axis = "columns").set_index("timestamp")
-        # self.sensor_data = pd.concat([self.sensor_data if not self.sensor_data.empty else None, new_row_df], axis = "index")
 
-        # print(unique_guids)
+        if Config.debug:
+            print(unique_guids)
 
         for guid in unique_guids:
             if guid is None:
@@ -226,6 +219,11 @@ class Storage():
 
     def calculate_ph(self, measurement_guid: str, write_data: bool = False) -> str:
         relevant_calibration_data = self.get_relevant_calibration_data(measurement_guid)
+        if len(relevant_calibration_data.index) < 3:
+            print("Warning: Fewer than 3 valid calibration points are available (calibrations are only valid for 12 hours and may be invalidated for other reasons). It is strongly suggested that you re-calibrate the sensor.")
+        if len(relevant_calibration_data.index) <= 0:
+            raise CalibrationError
+
         measurement_df = self.sensor_data[self.sensor_data["guid"] == measurement_guid]
         assert len(measurement_df.index) == 1
         self.calibration_map["measurement_guid"] = measurement_guid
@@ -250,7 +248,8 @@ class Storage():
                 self.calibration_map[f"electrode_{electrode_id}"] = calibration_list["guid"].to_list()
                 compare_guids = prev_guids.reset_index().equals(calibration_list["guid"].reset_index())
                 if not compare_guids:
-                    print("Guids are not all the same!")
+                    if Config.debug:
+                        print("Guids are not all the same!")
                     guids_all_the_same = False
             prev_guids = calibration_list["guid"]
 

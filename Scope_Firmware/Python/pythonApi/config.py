@@ -2,11 +2,12 @@ import json
 from pathlib import Path
 
 class Config():
-    config_filename = "config.json"
+    config_filename = "settings/config.json"
     calibration_data_filename = "sensor_data/calibration_data.csv"
     sensor_data_filename = "sensor_data/sensor_data.csv"
     ph_data_filename = "sensor_data/ph_data.csv"
     calibration_map_folder = "sensor_data/calibration_map/"
+    prompt_history_filename = "settings/promp_history.txt"
     debug = False
 
     @classmethod
@@ -27,6 +28,8 @@ class Config():
             cls.ph_data_filename = data["ph_data_filename"]
         if "calibration_map_folder" in data.keys():
             cls.calibration_map_folder = data["calibration_map_folder"]
+        if "prompt_history" in data.keys():
+            cls.prompt_history_filename = data["prompt_history_filename"]
         if "debug" in data.keys():
             cls.debug = data["debug"]
 
@@ -36,5 +39,5 @@ class Config():
     @classmethod
     def make_directories(cls):
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
-        for path in [cls.calibration_data_filename, cls.sensor_data_filename, cls.ph_data_filename]:
+        for path in [cls.calibration_data_filename, cls.sensor_data_filename, cls.ph_data_filename, cls.prompt_history_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)

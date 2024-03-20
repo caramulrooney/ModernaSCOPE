@@ -3,7 +3,7 @@ from config import Config
 import argparse
 
 parser = argparse.ArgumentParser("config")
-parser.add_argument("-c", "--config", type = str, default = "config.json")
+parser.add_argument("-c", "--config", type = str, default = "settings/config.json")
 parser.add_argument("-d", "--mkdirs", action = "store_true")
 args = parser.parse_args()
 Config.set_config(args.config, args.mkdirs)

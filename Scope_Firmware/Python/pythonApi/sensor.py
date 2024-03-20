@@ -52,9 +52,11 @@ class Sensor():
 
     @unpack_namespace
     def measure(self, electrodes, num_measurements, time_interval, show, voltage):
-        print(f"Inside of measure, {electrodes=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
+        if Config.debug:
+            print(f"Inside of measure, {electrodes=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
         electrode_ids_being_measured = ElectrodeNames.parse_electrode_input(electrodes)
-        print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
+        if Config.debug:
+            print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
 
         voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
@@ -74,9 +76,11 @@ class Sensor():
 
     @unpack_namespace
     def calibrate(self, ph, electrodes, num_measurements, time_interval, show, voltage):
-        print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
+        if Config.debug:
+            print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
         electrode_ids_being_calibrated = ElectrodeNames.parse_electrode_input(electrodes)
-        print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
+        if Config.debug:
+            print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
 
         voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
@@ -94,7 +98,8 @@ class Sensor():
 
     @unpack_namespace
     def reload_files(self, config_filename):
-        print(f"Inside of reload_files")
+        if Config.debug:
+            print(f"Inside of reload_files")
         if not len(config_filename) == 0:
             Config.set_config(config_filename)
         self.storage = Storage()
@@ -102,7 +107,8 @@ class Sensor():
 
     @unpack_namespace
     def write_files(self, config_filename):
-        print(f"Inside of write_files")
+        if Config.debug:
+            print(f"Inside of write_files")
         if not len(config_filename) == 0:
             Config.set_config(config_filename)
         self.storage.write_data()
