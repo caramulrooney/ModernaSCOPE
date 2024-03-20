@@ -1,4 +1,3 @@
-from enum import Enum
 import json
 from pathlib import Path
 
@@ -39,33 +38,3 @@ class Config():
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
         for path in [cls.calibration_data_filename, cls.sensor_data_filename, cls.ph_data_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)
-
-class StorageWritePermissionError(PermissionError):
-    """
-    PermissionError that specifically came from the Storage.write_data() function. This needs its own error type because the top-level program needs to know which function to call back when it receives such an error.
-    """
-
-N_ELECTRODES = 96
-N_COLUMNS = 12
-N_ROWS = 8
-ROW_LETTERS = "ABCDEFGH"
-COL_NUMBERS = "0123456789"
-ALL_ELECTRODES_KEYWORD = "all"
-
-class SelectionType(Enum):
-    ROW_WISE = 0
-    COLUMN_WISE = 1
-    EXCEL_LIKE = 2
-
-init_text_art = """
-
-___  ___      _ _   _       _              ______ _   _     _____
-|  \/  |     | | | (_)     | |             | ___ \ | | |   /  ___|
-| .  . |_   _| | |_ _ _ __ | | _____  __   | |_/ / |_| |   \ `--.  ___ _ __  ___  ___  _ __
-| |\/| | | | | | __| | '_ \| |/ _ \ \/ /   |  __/|  _  |    `--. \/ _ \ '_ \/ __|/ _ \| '__|
-| |  | | |_| | | |_| | |_) | |  __/>  <    | |   | | | |   /\__/ /  __/ | | \__ \ (_) | |
-\_|  |_/\__,_|_|\__|_| .__/|_|\___/_/\_\   \_|   \_| |_/   \____/ \___|_| |_|___/\___/|_|
-                     | |
-                     |_|
-
-"""

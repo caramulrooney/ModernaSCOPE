@@ -58,21 +58,6 @@ class Commands():
         calibrate_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage values after they are measured.")
         calibrate_parser.set_defaults(func = self.sensor.calibrate)
 
-        show_calibration_parser = self.subparsers.add_parser("show_calibration", prog = "show_calibration", exit_on_error = exit_on_error, description =
-    """Show calibrated voltage values for each calibrated electrode, along with the
-    timestamp and temperature of each calibration.""")
-        show_calibration_parser.add_argument('-e', '--electrodes', type = str, default = 'all', help = "Electrode range to show calibrated voltages for. Default is all 96 electrodes.")
-        show_calibration_parser.add_argument('-p', '--ph', type = float, help = "Each electrode may have multiple calibration voltages for different pH values. Show only the calibration voltage corresponding to a single pH.")
-        show_calibration_parser.add_argument('-s', '--sort_by_ph', action = 'store_true', help = "Sort values in ascending order of pH. Default is to sort by timestamp.")
-        show_calibration_parser.set_defaults(func = self.sensor.show_calibration)
-
-        clear_calibration_parser = self.subparsers.add_parser("clear_calibration", prog = "clear_calibration", exit_on_error = exit_on_error, description =
-    """Clear the most recent calibration values for the specified electrodes.""")
-        clear_calibration_parser.add_argument('-e', '--electrodes', type = str, default = 'all', help = "Electrode range to clear calibrated voltages for. Default is all 96 electrodes.")
-        clear_calibration_parser.add_argument('-p', '--ph', type = float, help = "Clear the calibration voltage corresponding to a specified pH.")
-        clear_calibration_parser.add_argument('-a', '--all', action = 'store_true', help = "Clear calibration voltages for all pH values for the specified electrodes.")
-        clear_calibration_parser.set_defaults(func = self.sensor.clear_calibration)
-
         quit_parser = self.subparsers.add_parser("quit", prog = "quit", exit_on_error = True, description = """Exit the program.""")
         quit_parser.set_defaults(func = quit)
 

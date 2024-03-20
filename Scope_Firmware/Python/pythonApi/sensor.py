@@ -3,7 +3,7 @@ from storage import Storage
 from config import Config
 from numpy.random import rand
 import numpy as np
-from config import N_ELECTRODES
+from constants import N_ELECTRODES
 from electrode_names import ElectrodeNames
 from typing import Protocol
 import time
@@ -19,9 +19,6 @@ def unpack_namespace(func):
 
 class FloatCombiner(Protocol):
     def __call__(self, *args: int) -> float: ...
-
-def parse_battleship_notation(self, battleship):
-    return [0, 1, 2, 3, 4]
 
 class Sensor():
     def __init__(self):
@@ -94,17 +91,6 @@ class Sensor():
             return
         if show:
             self.show_most_recent_calibration_ph()
-
-    @unpack_namespace
-    def show_calibration(self, electrodes, ph, sort_by_ph):
-        print(f"Inside of calibrate, {electrodes=}, {ph=}, {sort_by_ph=}")
-        electrode_ids = self.parse_battleship_notation(electrodes)
-        for i in electrode_ids:
-            print(f"Electrode {i}: {self.calibrations[i].get_recent_calibrations()[0]}")
-
-    @unpack_namespace
-    def clear_calibration(self, electrodes, ph, all):
-        print(f"Inside of calibrate, {electrodes=}, {ph=}, {all=}")
 
     @unpack_namespace
     def reload_files(self, config_filename):

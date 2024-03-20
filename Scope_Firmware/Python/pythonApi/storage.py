@@ -1,14 +1,18 @@
 import pandas as pd
 import datetime as dt
 from pytz import timezone
-import dateutil.parser
-import operator
-from config import N_ELECTRODES, Config, StorageWritePermissionError
+from config import Config
+from constants import N_ELECTRODES
 from os.path import exists
 from uuid import uuid4
 from typing import Optional
 import numpy as np
 from pathlib import Path
+
+class StorageWritePermissionError(PermissionError):
+    """
+    PermissionError that specifically came from the Storage.write_data() function. This needs its own error type because the top-level program needs to know which function to call back when it receives such an error.
+    """
 
 class Storage():
     my_tz = timezone('US/Eastern')

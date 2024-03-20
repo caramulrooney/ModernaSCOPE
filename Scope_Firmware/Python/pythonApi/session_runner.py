@@ -1,8 +1,9 @@
 from prompt_toolkit import PromptSession
 from prompt_toolkit.lexers import PygmentsLexer
-from config import init_text_art, StorageWritePermissionError
+from constants import init_text_art
 from commands import Commands
 from lexer import CustomLexer, YesNoLexer
+from storage import StorageWritePermissionError
 
 def handle_storage_write_exception(func):
     def inner_func(self, *args, **kwargs):
