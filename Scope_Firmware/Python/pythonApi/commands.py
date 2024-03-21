@@ -1,12 +1,28 @@
 from argparse import ArgumentParser, ArgumentError
-from constants import ALL_ELECTRODES_KEYWORD
-from sensor import Sensor
+from constants import N_ELECTRODES, ALL_ELECTRODES_KEYWORD, CLI_SPLIT_CHARS
 from config import Config
-SPLIT_CHARS = " "
+import inspect
+from numpy.random import rand
+import numpy as np
+import time
+from typing import Protocol
+from storage import Storage
+from electrode_names import ElectrodeNames
+
+class FloatCombiner(Protocol):
+    """
+    Type hint class for functions which take any number of floats and return a float, for example `mean`.
+    """
+    def __call__(self, *args: float) -> float: ...
 
 class Commands():
+    """
+    Argument parser for primary user input.
+
+    The heavy lifting of parsing is done by `argparse.ArgumentParser`. The available commands are initialized in self.make_parsers(). Each command has a callback function which is defined below.
+    """
     def __init__(self):
-        self.sensor = Sensor()
+        self.storage = Storage()
 
         self.parser = ArgumentParser(prog="", exit_on_error = False, description =
     """This is the pH sensor command-line interface. To run, type one of the positional arguments followed by parameters and flags as necessary. For example, try running `# measure -vn` to measure the voltages at each of the electrodes. Type any command with the -h flag to see the options for that command.""")
@@ -15,7 +31,7 @@ class Commands():
 
     def execute(self, input):
         try:
-            args = self.parser.parse_args(input.split(SPLIT_CHARS)) # creates a namespace object
+            args = self.parser.parse_args(input.split(CLI_SPLIT_CHARS)) # creates a namespace object
         except (ArgumentError, SystemExit) as ex:
             print(ex)
         else:
@@ -40,7 +56,7 @@ class Commands():
         measure_parser.add_argument('-t', '--time_interval', type = float, default = 2, help = "Time interval between measurements (minimum: 2 seconds, default: 2 seconds).")
         measure_parser.add_argument('-s', '--show', action = 'store_true', help = "Show the pH values after they are measured.")
         measure_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage values after they are measured.")
-        measure_parser.set_defaults(func = self.sensor.measure)
+        measure_parser.set_defaults(func = self.measure)
 
         calibrate_parser  =  self.subparsers.add_parser("calibrate", exit_on_error = exit_on_error, description =
     """Calibrate electrodes with a standard pH buffer. Assume a standard buffer
@@ -57,7 +73,7 @@ class Commands():
         calibrate_parser.add_argument('-t', '--time_interval', type = float, default = 2, help = "Time interval between measurements (minimum: 2 seconds, default: 2 seconds).")
         calibrate_parser.add_argument('-s', '--show', action = 'store_true', help = "Show the pH values after they are measured.")
         calibrate_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage values after they are measured.")
-        calibrate_parser.set_defaults(func = self.sensor.calibrate)
+        calibrate_parser.set_defaults(func = self.calibrate)
 
         quit_parser = self.subparsers.add_parser("quit", prog = "quit", exit_on_error = True, description = """Exit the program.""")
         quit_parser.set_defaults(func = quit)
@@ -70,19 +86,207 @@ class Commands():
         show_parser.add_argument('-cp', '--calibration_ph', action = 'store_true', help = "Show the pH on each of the electrodes during the most recent calibration.")
         show_parser.add_argument('-p', '--ph', action = 'store_true', help = "Show the pH on each of the electrodes for the most recent measurement.")
         show_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltages on each of the electrodes during the most recent measurement.")
-        show_parser.set_defaults(func = self.sensor.show)
+        show_parser.set_defaults(func = self.show)
 
         load_parser = self.subparsers.add_parser("load", prog = "load", exit_on_error = exit_on_error, description =
     """Re-load the csv file for calibration data from memory.""")
         load_parser.add_argument('-f', '--file', type = str, default = "", help = "Re-load files from the specified JSON configuration file. Default is the configuration file used to initialize the program.")
-        load_parser.set_defaults(func = self.sensor.reload_files)
+        load_parser.set_defaults(func = self.reload_files)
 
         write_parser = self.subparsers.add_parser("write", prog = "write", exit_on_error = exit_on_error, description =
     """Write the currently stored data to a csv file. This should be done automatically after every measurement and calibration, except when a file write fails because the file was open in another program at the same time.""")
         write_parser.add_argument('-f', '--file', type = str, default = "", help = "Write files to the filenames specified in the JSON configuration file. Default is the configuration file used to initialize the program.")
-        write_parser.set_defaults(func = self.sensor.write_files)
+        write_parser.set_defaults(func = self.write_files)
 
         conversion_info_parser = self.subparsers.add_parser("conversion_info", prog = "conversion_info", exit_on_error = exit_on_error, description =
     f"""Generate conversion information for a given measurement ID to show which calibration data points were used to convert from a voltage to a pH. Store the resulting information as a CSV file in the folder specified in the configuration file (currently {Config.calibration_map_folder}).""")
         conversion_info_parser.add_argument('-m', '--measurement_id', type = str, default = "", help = "Measurement ID for which to generate conversion information.")
-        conversion_info_parser.set_defaults(func = self.sensor.generate_conversion_info)
+        conversion_info_parser.set_defaults(func = self.generate_conversion_info)
+
+    def unpack_namespace(func):
+        """
+        Decorator for parsing the arguments provided by `argparse.ArgumentParser`. The ArgumentParser passes a single Namespace object to its designated callback function. This decorator unpacks the namespace and passes the parameters as keyword arguments to the callback function. This allows the callback function to have a signature with explicit parameters.
+
+        Even so, it is important that the decorated function's signature exactly matches the arguments of the relevant subparser in commands.py.
+        """
+        def inner(self, namespace):
+            sig = inspect.signature(func)
+            kwargs = vars(namespace)
+            kwargs["self"] = self
+            args_to_pass = [kwargs[arg] for arg in sig.parameters.keys()]
+            func(*args_to_pass)
+        return inner
+
+    # callback functions
+
+    @unpack_namespace
+    def measure(self, electrodes, num_measurements, time_interval, show, voltage):
+        """
+        Callback function for 'measure' command.
+        """
+        if Config.debug:
+            print(f"Inside of measure, {electrodes=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
+        electrode_ids_being_measured = ElectrodeNames.parse_electrode_input(electrodes)
+        if Config.debug:
+            print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
+
+        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
+
+        # set voltage reading of electrodes not being measured to None
+        for electrode_id in range(N_ELECTRODES):
+            if electrode_id not in electrode_ids_being_measured:
+                voltages[electrode_id] = None
+
+        print("Converting measurement to ph...")
+        guid = self.storage.add_measurement(voltages)
+        print(f"Storing pH measurement with GUID '{guid}'")
+        if voltage:
+            self.show_most_recent_measurement_voltage()
+            return
+        if show:
+            self.show_most_recent_measurement_ph()
+
+    @unpack_namespace
+    def calibrate(self, ph, electrodes, num_measurements, time_interval, show, voltage):
+        """
+        Callback function for 'calibrate' command.
+        """
+        if Config.debug:
+            print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
+        electrode_ids_being_calibrated = ElectrodeNames.parse_electrode_input(electrodes)
+        if Config.debug:
+            print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
+
+        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
+
+        # set voltage reading of electrodes not being measured to None
+        for electrode_id in range(N_ELECTRODES):
+            if electrode_id not in electrode_ids_being_calibrated:
+                voltages[electrode_id] = None
+        guid = self.storage.add_calibration(ph, voltages)
+        print(f"Storing calibration entry with GUID '{guid}'")
+        if voltage:
+            self.show_most_recent_calibration_voltage()
+            return
+        if show:
+            self.show_most_recent_calibration_ph()
+
+    @unpack_namespace
+    def reload_files(self, config_filename):
+        """
+        Callback function for 'load' command.
+        """
+        if Config.debug:
+            print(f"Inside of reload_files")
+        if not len(config_filename) == 0:
+            Config.set_config(config_filename)
+        self.storage = Storage()
+        print(f"Loaded data from the files specified in '{config_filename}'.")
+
+    @unpack_namespace
+    def write_files(self, config_filename):
+        """
+        Callback function for 'write' command.
+        """
+        if Config.debug:
+            print(f"Inside of write_files")
+        if not len(config_filename) == 0:
+            Config.set_config(config_filename)
+        self.storage.write_data()
+        print(f"Wrote data to the files specified in '{config_filename}'.")
+
+    @unpack_namespace
+    def show(self, ids: bool, electrodes: str, calibration_voltage: bool, calibration_ph: bool, voltage: bool, ph: bool):
+        """
+        Callback function for 'show' command.
+        """
+        show_electrodes: bool = electrodes != ""
+        if sum([ids, show_electrodes, calibration_voltage, calibration_ph, voltage, ph]) > 1:
+            print("Please select only one option at a time.")
+            return
+        if sum([ids, show_electrodes, calibration_voltage, calibration_ph, voltage, ph]) < 1:
+            ids = True
+        if ids:
+            ElectrodeNames.ascii_art_electrode_ids()
+            return
+        if electrodes:
+            electrode_ids = ElectrodeNames.parse_electrode_input(electrodes)
+            ElectrodeNames.ascii_art_selected(electrode_ids)
+            return
+        if calibration_voltage:
+            self.show_most_recent_calibration_voltage()
+        if calibration_ph:
+            self.show_most_recent_calibration_ph()
+        if voltage:
+            self.show_most_recent_measurement_voltage()
+        if ph:
+            self.show_most_recent_measurement_ph()
+
+    @unpack_namespace
+    def generate_conversion_info(self, measurement_id: str):
+        """
+        Callback function for 'conversion_info' command.
+        """
+        self.storage.calculate_ph(measurement_id, write_data = True)
+
+    def show_most_recent_calibration_ph(self):
+        """
+        Helper function for 'show -cp' command.
+        """
+        calibration_ph = self.storage.get_most_recent_calibration_ph()
+        print(f"Showing the pH value being stored for the most recent calibration run. To see the associated voltages, use 'show -c'.")
+        calibration_values = self.storage.get_most_recent_calibration()
+        print(ElectrodeNames.electrode_ascii_art([f"{calibration_ph:.2f}" if val is not None else None for val in calibration_values]))
+
+    def show_most_recent_calibration_voltage(self):
+        """
+        Helper function for 'show -cv' command.
+        """
+        calibration_ph = self.storage.get_most_recent_calibration_ph()
+        print(f"Showing voltages from the most recent calibration run in Volts. The pH value was {calibration_ph:.2f}.")
+        calibration_values = self.storage.get_most_recent_calibration()
+        print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in calibration_values]))
+
+    def show_most_recent_measurement_voltage(self):
+        """
+        Helper function for 'show -v' command.
+        """
+        print(f"Showing voltages from the most recent measurement in Volts. To see the calculated pH values, use 'show -p'.")
+        voltage_values = self.storage.get_most_recent_measurement()
+        print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in voltage_values]))
+
+    def show_most_recent_measurement_ph(self):
+        """
+        Helper function for 'show -m' command.
+        """
+        print(f"Showing pH values from the most recent measurement in pH units. To see the associated voltages, use 'show -v'.")
+        ph_values = self.storage.get_most_recent_ph()
+        print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" if val is not None else None for val in ph_values]))
+
+    def get_voltages_single(self) -> list[float]: # TODO: get data from sensor via pySerial
+        """
+        Talk to the sensor and get a single voltage from each of the electrodes.
+        """
+        return rand(1, N_ELECTRODES)
+
+    # sensor interface functions
+
+    def get_voltages_blocking(self, n_measurements: int = 2, delay_between_measurements: float = 2, average_func: FloatCombiner = np.mean):
+        """
+        Perform a certain number of consecutive measurements and report the average voltage at each electrode over the duration of the measurement.
+        """
+        print(f"Reading {n_measurements} measurements from each electrode over {n_measurements * delay_between_measurements} seconds.")
+        voltages = np.zeros((n_measurements, N_ELECTRODES)) # 2-D array, n_measurements tall and N_ELECTRODES wide
+        for measurement in range(n_measurements):
+            voltages[measurement] = self.get_voltages_single() # set the next row of the array
+            time.sleep(delay_between_measurements)
+            print(f"\tMeasurement #{measurement + 1} of {n_measurements} completed.")
+
+        # take the average of all the voltage readings over time for each electrode
+        averaged = []
+        for electrode_id in range(N_ELECTRODES):
+            voltages_to_combine = np.transpose(voltages)[electrode_id]
+            assert voltages_to_combine.size == n_measurements
+            averaged.append(average_func(voltages_to_combine))
+
+        return averaged

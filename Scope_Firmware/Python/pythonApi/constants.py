@@ -12,6 +12,9 @@ COL_NUMBERS = "0123456789"
 
 # string to refer to all electrodes during electrode range parsing
 ALL_ELECTRODES_KEYWORD = "all"
+# delimiter for command line arguments
+CLI_SPLIT_CHARS = " "
+
 # raise a warning if fewer than this number of calibration data points would be used in a conversion
 MIN_CALIBRATIONS_RECOMMENDED = 3
 # do not refer to calibration data older than this amount of time

@@ -50,7 +50,7 @@ class SessionRunner():
         while True:
             text = self.session.prompt("Retry now? [Y/n] ", lexer = PygmentsLexer(YesNoLexer)).strip()
             if text == "Y" or text == "":
-                self.commands.sensor.storage.write_data()
+                self.commands.storage.write_data()
                 print(f"Wrote data successfully.")
                 return
             if text == "n":
