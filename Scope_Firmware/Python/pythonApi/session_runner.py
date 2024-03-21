@@ -5,15 +5,15 @@ from prompt_toolkit.history import FileHistory
 from constants import init_text_art
 from commands import Commands
 from lexer import CustomLexer, YesNoLexer
-from storage import StorageWritePermissionError, CalibrationError
+from sensor_data import DataWritePermissionError, CalibrationError
 from electrode_names import ElectrodeNameParseError
 from config import Config
 
-def handle_storage_write_exception(func):
+def handle_data_write_exception(func):
     def inner_func(self, *args, **kwargs):
         try:
             func(self, *args ,**kwargs)
-        except StorageWritePermissionError:
+        except DataWritePermissionError:
             print("Could not open file for writing, likely because the file was open in a different program. Please use the 'write' command to retry, or press enter now.")
             self.retry_file_write()
     return inner_func
@@ -45,19 +45,19 @@ class SessionRunner():
         self.session = PromptSession(history=FileHistory(Config.prompt_history_filename))
         print(init_text_art)
 
-    @handle_storage_write_exception
+    @handle_data_write_exception
     def retry_file_write(self):
         while True:
             text = self.session.prompt("Retry now? [Y/n] ", lexer = PygmentsLexer(YesNoLexer)).strip()
             if text == "Y" or text == "":
-                self.commands.storage.write_data()
+                self.commands.sensor_data.write_data()
                 print(f"Wrote data successfully.")
                 return
             if text == "n":
                 return
             print("Invalid response.")
 
-    @handle_storage_write_exception
+    @handle_data_write_exception
     @handle_non_fatal_exception
     def execute(self, text):
         self.commands.execute(text)

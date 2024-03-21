@@ -6,7 +6,7 @@ from numpy.random import rand
 import numpy as np
 import time
 from typing import Protocol
-from storage import Storage
+from sensor_data import SensorData
 from electrode_names import ElectrodeNames
 
 class FloatCombiner(Protocol):
@@ -22,7 +22,7 @@ class Commands():
     The heavy lifting of parsing is done by `argparse.ArgumentParser`. The available commands are initialized in self.make_parsers(). Each command has a callback function which is defined below.
     """
     def __init__(self):
-        self.storage = Storage()
+        self.sensor_data = SensorData()
 
         self.parser = ArgumentParser(prog="", exit_on_error = False, description =
     """This is the pH sensor command-line interface. To run, type one of the positional arguments followed by parameters and flags as necessary. For example, try running `# measure -vn` to measure the voltages at each of the electrodes. Type any command with the -h flag to see the options for that command.""")
@@ -138,7 +138,7 @@ class Commands():
                 voltages[electrode_id] = None
 
         print("Converting measurement to ph...")
-        guid = self.storage.add_measurement(voltages)
+        guid = self.sensor_data.add_measurement(voltages)
         print(f"Storing pH measurement with GUID '{guid}'")
         if voltage:
             self.show_most_recent_measurement_voltage()
@@ -163,7 +163,7 @@ class Commands():
         for electrode_id in range(N_ELECTRODES):
             if electrode_id not in electrode_ids_being_calibrated:
                 voltages[electrode_id] = None
-        guid = self.storage.add_calibration(ph, voltages)
+        guid = self.sensor_data.add_calibration(ph, voltages)
         print(f"Storing calibration entry with GUID '{guid}'")
         if voltage:
             self.show_most_recent_calibration_voltage()
@@ -180,7 +180,7 @@ class Commands():
             print(f"Inside of reload_files")
         if not len(config_filename) == 0:
             Config.set_config(config_filename)
-        self.storage = Storage()
+        self.sensor_data = SensorData()
         print(f"Loaded data from the files specified in '{config_filename}'.")
 
     @unpack_namespace
@@ -192,7 +192,7 @@ class Commands():
             print(f"Inside of write_files")
         if not len(config_filename) == 0:
             Config.set_config(config_filename)
-        self.storage.write_data()
+        self.sensor_data.write_data()
         print(f"Wrote data to the files specified in '{config_filename}'.")
 
     @unpack_namespace
@@ -227,24 +227,24 @@ class Commands():
         """
         Callback function for 'conversion_info' command.
         """
-        self.storage.calculate_ph(measurement_id, write_data = True)
+        self.sensor_data.calculate_ph(measurement_id, write_data = True)
 
     def show_most_recent_calibration_ph(self):
         """
         Helper function for 'show -cp' command.
         """
-        calibration_ph = self.storage.get_most_recent_calibration_ph()
+        calibration_ph = self.sensor_data.get_most_recent_calibration_ph()
         print(f"Showing the pH value being stored for the most recent calibration run. To see the associated voltages, use 'show -c'.")
-        calibration_values = self.storage.get_most_recent_calibration()
+        calibration_values = self.sensor_data.get_most_recent_calibration()
         print(ElectrodeNames.electrode_ascii_art([f"{calibration_ph:.2f}" if val is not None else None for val in calibration_values]))
 
     def show_most_recent_calibration_voltage(self):
         """
         Helper function for 'show -cv' command.
         """
-        calibration_ph = self.storage.get_most_recent_calibration_ph()
+        calibration_ph = self.sensor_data.get_most_recent_calibration_ph()
         print(f"Showing voltages from the most recent calibration run in Volts. The pH value was {calibration_ph:.2f}.")
-        calibration_values = self.storage.get_most_recent_calibration()
+        calibration_values = self.sensor_data.get_most_recent_calibration()
         print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in calibration_values]))
 
     def show_most_recent_measurement_voltage(self):
@@ -252,7 +252,7 @@ class Commands():
         Helper function for 'show -v' command.
         """
         print(f"Showing voltages from the most recent measurement in Volts. To see the calculated pH values, use 'show -p'.")
-        voltage_values = self.storage.get_most_recent_measurement()
+        voltage_values = self.sensor_data.get_most_recent_measurement()
         print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in voltage_values]))
 
     def show_most_recent_measurement_ph(self):
@@ -260,7 +260,7 @@ class Commands():
         Helper function for 'show -m' command.
         """
         print(f"Showing pH values from the most recent measurement in pH units. To see the associated voltages, use 'show -v'.")
-        ph_values = self.storage.get_most_recent_ph()
+        ph_values = self.sensor_data.get_most_recent_ph()
         print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" if val is not None else None for val in ph_values]))
 
     def get_voltages_single(self) -> list[float]: # TODO: get data from sensor via pySerial

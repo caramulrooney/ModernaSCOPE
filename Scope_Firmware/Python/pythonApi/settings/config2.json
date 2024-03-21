@@ -1,7 +1,0 @@
-{
-  "calibration_data_filename": "TEST_sensor_data/calibration_data.csv",
-  "sensor_data_filename": "TEST_sensor_data/sensor_data.csv",
-  "ph_data_filename": "TEST_sensor_data/ph_data.csv",
-  "calibration_map_filename": "TEST_sensor_data/calibration_map.csv",
-  "debug": false
-}

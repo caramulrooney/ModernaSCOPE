@@ -10,31 +10,31 @@ from typing import Optional
 import numpy as np
 from pathlib import Path
 
-class StorageWritePermissionError(PermissionError):
+class DataWritePermissionError(PermissionError):
     """
-    PermissionError that specifically came from the Storage.write_data() function. This needs its own error type because the top-level program needs to know which function to call back when it receives such an error.
+    PermissionError that specifically came from the SensorData.write_data() function. This needs its own error type because the top-level program needs to know which function to call back when it receives such an error.
     """
 class CalibrationError(Exception):
     """
     Too few calibrations exist to meaningfully convert the data.
     """
 
-class Storage():
+class SensorData():
     def __init__(self):
         """
         Initialize CSV files for permanent data storage, or load their contents into memory if they exist.
 
         `calibration_data_filename`: CSV file to store a historical record of every calibration that has been performed. Only calibrations more recent than 12 hours will be used. There is also a field in the CSV file called `is_valid`; use this to mark calibration attempts that should be ignored without deleting rows from the table. Each calibration has a unique GUID and a timestamp associated with it.
 
-        `sensor_data_filename`: CSV file to store a historical record of every measurement that has been performed. Only the raw measured voltage is stored in this file. The voltages can be converted into pH values in post-processing (and indeed, this processing is dones automatically and stored in a separate file called `ph_data_filename`. Each voltage measurement has a unique GUID and a timestamp associated with it.
+        `measurement_data_filename`: CSV file to store a historical record of every measurement that has been performed. Only the raw measured voltage is stored in this file. The voltages can be converted into pH values in post-processing (and indeed, this processing is dones automatically and stored in a separate file called `ph_result_filename`. Each voltage measurement has a unique GUID and a timestamp associated with it.
 
-        `ph_data_filename`: CSV file containing the pH values at each electrode that have been calculated during post-processing of the electrode voltages in `sensor_data_filename`. The GUID and timestamp of each entry in `ph_data_filename` is shared with a row in that table.
+        `ph_result_filename`: CSV file containing the pH values at each electrode that have been calculated during post-processing of the electrode voltages in `measurement_data_filename`. The GUID and timestamp of each entry in `ph_result_filename` is shared with a row in that table.
 
         `calibration_map_folder`: A calibration map is a CSV file documenting which calibration data points were used to calculate the pH of a given measurement. Each time a measurement is converted into a pH, a new file is created in this folder with a name consisting of a timestamp and a GUID corresponding to the measurement ID.
         """
         self.calibration_data_filename = Config.calibration_data_filename
-        self.sensor_data_filename = Config.sensor_data_filename
-        self.ph_data_filename = Config.ph_data_filename
+        self.measurement_data_filename = Config.measurement_data_filename
+        self.ph_result_filename = Config.ph_result_filename
         self.calibration_map_folder = Config.calibration_map_folder
 
         if exists(self.calibration_data_filename):
@@ -45,21 +45,21 @@ class Storage():
         else:
             self.calibration_data = self.make_calibration_data_file()
 
-        if exists(self.sensor_data_filename):
-            self.sensor_data = pd.read_csv(
-                self.sensor_data_filename,
+        if exists(self.measurement_data_filename):
+            self.measurement_data = pd.read_csv(
+                self.measurement_data_filename,
                 parse_dates = ["timestamp"],
             ).set_index("timestamp")
         else:
-            self.sensor_data = self.make_sensor_data_file()
+            self.measurement_data = self.make_measurement_data_file()
 
-        if exists(self.ph_data_filename):
-            self.ph_data = pd.read_csv(
-                self.ph_data_filename,
+        if exists(self.ph_result_filename):
+            self.ph_result = pd.read_csv(
+                self.ph_result_filename,
                 parse_dates = ["timestamp"],
             ).set_index("timestamp")
         else:
-            self.ph_data = self.make_ph_data_file()
+            self.ph_result = self.ph_result_data_file()
 
         self.calibration_map: dict[str: list[str]] = {} # placeholder; will be overwritten by self.calculate_ph()
 
@@ -78,7 +78,7 @@ class Storage():
         columns.extend([f"V_calibration_{i}" for i in range(N_ELECTRODES)])
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
-    def make_sensor_data_file(self) -> pd.DataFrame:
+    def make_measurement_data_file(self) -> pd.DataFrame:
         """
         Initialize a dataframe to hold measurement data, including columns for metadata and one column for the voltage at each electrode during the measurement. Return the empty dataframe.
         """
@@ -89,7 +89,7 @@ class Storage():
         columns.extend([f"V_electrode_{i}" for i in range(N_ELECTRODES)])
         return pd.DataFrame(columns = columns).set_index("timestamp")
 
-    def make_ph_data_file(self) -> pd.DataFrame:
+    def ph_result_data_file(self) -> pd.DataFrame:
         """
         Initialize a dataframe to hold pH data, including columns for metadata and one column for the pH at each electrode resulting from the voltage-to-pH conversion. Return the empty dataframe.
         """
@@ -126,7 +126,7 @@ class Storage():
 
     def add_measurement(self, voltages: list[Optional[float]], write_data: bool = True) -> str:
         """
-        Insert a new row in self.measurement_data with a list of electrode voltages. Electrode voltages should be passed as a list of 96 numbers, with None for the electrodes that are excluded. Create the necessary metadata for the record, including a unique GUID and timestamp. Automatically write the new row to the CSV file `sensor_data_filename` unless `write_data` is set to `False`. Automatically call self.calculate_ph() to insert a corresponding row in self.ph_data and write that to the CSV file `ph_data_filename` as well.
+        Insert a new row in self.measurement_data with a list of electrode voltages. Electrode voltages should be passed as a list of 96 numbers, with None for the electrodes that are excluded. Create the necessary metadata for the record, including a unique GUID and timestamp. Automatically write the new row to the CSV file `measurement_data_filename` unless `write_data` is set to `False`. Automatically call self.calculate_ph() to insert a corresponding row in self.ph_result and write that to the CSV file `ph_result_filename` as well.
         """
         assert(len(voltages) == N_ELECTRODES)
         timestamp = dt.datetime.now(tz = timezone(Config.timezone))
@@ -139,7 +139,7 @@ class Storage():
         new_row_values.update({f"V_electrode_{i}": [voltages[i]] for i in range(N_ELECTRODES)})
 
         new_row_df = pd.DataFrame(new_row_values).dropna(axis = "columns").set_index("timestamp")
-        self.sensor_data = pd.concat([self.sensor_data if not self.sensor_data.empty else None, new_row_df], axis = "index")
+        self.measurement_data = pd.concat([self.measurement_data if not self.measurement_data.empty else None, new_row_df], axis = "index")
         self.calculate_ph(str(guid))
 
         if write_data:
@@ -150,12 +150,12 @@ class Storage():
         """
         Write calibration data, measurement data, and converted pH data stored in memory to their respective CSV files. For the calibration map file, create a new file name by combining the timestamp and the measurement guid of the measurement being converted.
 
-        In case of a PermissionError, which occurs when one of the required files is open in another program, raise a StorageWritePermissionError which is handled by the top-level prompt script to ask the user to close the other program and retry.
+        In case of a PermissionError, which occurs when one of the required files is open in another program, raise a DataWritePermissionError which is handled by the top-level prompt script to ask the user to close the other program and retry.
         """
         try:
             self.calibration_data.to_csv(self.calibration_data_filename)
-            self.sensor_data.to_csv(self.sensor_data_filename)
-            self.ph_data.to_csv(self.ph_data_filename)
+            self.measurement_data.to_csv(self.measurement_data_filename)
+            self.ph_result.to_csv(self.ph_result_filename)
 
             if len(self.calibration_map) == 0:
                 # after a calibration or some other operation which left self.calibration_map empty, erase the file
@@ -164,7 +164,7 @@ class Storage():
 
             calibration_map_df = self.calibration_map_to_dataframe(self.calibration_map)
             calibration_map_guid = calibration_map_df.index.name
-            calibration_map_ts = self.sensor_data[self.sensor_data["guid"] == calibration_map_guid].index[0]
+            calibration_map_ts = self.measurement_data[self.measurement_data["guid"] == calibration_map_guid].index[0]
             calibration_map_name = f"{calibration_map_ts.strftime('%Y_%m_%d_%H_%M_%S_%f')}_Measurement_ID_({calibration_map_guid}).csv"
             if Config.debug:
                 print(f"Storing calibration map in file: {calibration_map_name}")
@@ -173,7 +173,7 @@ class Storage():
 
         except PermissionError:
             # bump it to the top level program
-            raise StorageWritePermissionError
+            raise DataWritePermissionError
 
     def calibration_map_to_dataframe(self, calibration_map: dict[str: list[str]]) -> pd.DataFrame:
         """
@@ -268,7 +268,7 @@ class Storage():
 
         Return a dataframe containing the relevant rows of the calibration data table.
         """
-        measurement_df = self.sensor_data[self.sensor_data["guid"] == measurement_guid]
+        measurement_df = self.measurement_data[self.measurement_data["guid"] == measurement_guid]
         measurement_ts =  measurement_df.index[0]
         relevant_calibration_data = self.calibration_data[
             (self.calibration_data.index < measurement_ts) &
@@ -313,7 +313,7 @@ class Storage():
 
     def calculate_ph(self, measurement_guid: str, write_data: bool = False) -> str:
         """
-        Insert a new row in self.ph_data using measurement data corresponding to `measurement_guid`. Since this function is normally called from `self.add_measurement()` which takes care of writing data, this function does not write to a file automatically unless `write_data` is set to `True`.
+        Insert a new row in self.ph_result using measurement data corresponding to `measurement_guid`. Since this function is normally called from `self.add_measurement()` which takes care of writing data, this function does not write to a file automatically unless `write_data` is set to `True`.
         """
         relevant_calibration_data = self.get_relevant_calibration_data(measurement_guid)
         if len(relevant_calibration_data.index) < MIN_CALIBRATIONS_RECOMMENDED:
@@ -321,7 +321,7 @@ class Storage():
         if len(relevant_calibration_data.index) <= 0:
             raise CalibrationError("No valid calibration points are available. A pH conversion cannot occur.")
 
-        measurement_df = self.sensor_data[self.sensor_data["guid"] == measurement_guid]
+        measurement_df = self.measurement_data[self.measurement_data["guid"] == measurement_guid]
         assert len(measurement_df.index) == 1
         self.calibration_map["measurement_guid"] = measurement_guid
 
@@ -354,7 +354,7 @@ class Storage():
             print(f"WARNING: Using different calibration data points for different measurements. Please review the file {self.calibration_data_filename} to see details of the calibrations or to flag certain calibrations as invalid.")
 
         new_row_df = pd.DataFrame(new_row_values).dropna(axis = "columns").set_index("timestamp")
-        self.ph_data = pd.concat([self.ph_data if not self.ph_data.empty else None, new_row_df], axis = "index")
+        self.ph_result = pd.concat([self.ph_result if not self.ph_result.empty else None, new_row_df], axis = "index")
         if write_data:
             self.write_data()
         return measurement_guid
@@ -382,7 +382,7 @@ class Storage():
         """
         Return a list of the voltages at each electrode for the most recent measurement. For excluded electrodes, the corresponding entry is None.
         """
-        last_row = self.sensor_data.sort_index(ascending = True).tail(1)
+        last_row = self.measurement_data.sort_index(ascending = True).tail(1)
         voltage_values = []
         for electrode_id in range(N_ELECTRODES):
             voltage_value = last_row[f"V_electrode_{electrode_id}"].iloc[0]
@@ -393,7 +393,7 @@ class Storage():
         """
         Return a list of the pH values at each electrode for the most recent conversion. For excluded electrodes, the corresponding entry is None.
         """
-        last_row = self.ph_data.sort_index(ascending = True).tail(1)
+        last_row = self.ph_result.sort_index(ascending = True).tail(1)
         ph_values = []
         for electrode_id in range(N_ELECTRODES):
             ph_value = last_row[f"ph_electrode_{electrode_id}"].iloc[0]

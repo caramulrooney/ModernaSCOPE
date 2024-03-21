@@ -4,8 +4,8 @@ from pathlib import Path
 class Config():
     config_filename = "settings/config.json"
     calibration_data_filename = "sensor_data/calibration_data.csv"
-    sensor_data_filename = "sensor_data/sensor_data.csv"
-    ph_data_filename = "sensor_data/ph_data.csv"
+    measurement_data_filename = "sensor_data/measurement_data.csv"
+    ph_result_filename = "sensor_data/ph_result.csv"
     calibration_map_folder = "sensor_data/calibration_map/"
     prompt_history_filename = "settings/prompt_history.txt"
     timezone = "US/Eastern"
@@ -23,10 +23,10 @@ class Config():
         data = json.load(f)
         if "calibration_data_filename" in data.keys():
             cls.calibration_data_filename = data["calibration_data_filename"]
-        if "sensor_data_filename" in data.keys():
-            cls.sensor_data_filename = data["sensor_data_filename"]
-        if "ph_data_filename" in data.keys():
-            cls.ph_data_filename = data["ph_data_filename"]
+        if "measurement_data_filename" in data.keys():
+            cls.measurement_data_filename = data["measurement_data_filename"]
+        if "ph_result_filename" in data.keys():
+            cls.ph_result_filename = data["ph_result_filename"]
         if "calibration_map_folder" in data.keys():
             cls.calibration_map_folder = data["calibration_map_folder"]
         if "prompt_history" in data.keys():
