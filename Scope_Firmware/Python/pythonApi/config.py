@@ -2,7 +2,13 @@ import json
 from pathlib import Path
 
 class Config():
-    config_filename = "settings/config.json"
+    """
+    Configuration information that may need to be changed by the user, such as file paths to measurement and calibration data. Properties defined in this class are distinct from those defined in constants.py in that they might need to change from one session to the next. All properties and methods belong to the class and can be accessed without instantiation.
+
+    Load the config parameters from a json file with set_config().
+
+    If necessary, use make_directories() to initialize the folder structure so the data files can be created at runtime.
+    """
     calibration_data_filename = "sensor_data/calibration_data.csv"
     measurement_data_filename = "sensor_data/measurement_data.csv"
     ph_result_filename = "sensor_data/ph_result.csv"
@@ -12,8 +18,24 @@ class Config():
     debug = False
 
     @classmethod
-    def set_config(cls, config_filename, mkdirs):
-        cls.config_filename = config_filename
+    def set_config(cls, config_filename: str, mkdirs: bool = True):
+        """
+        Read in configuration parameters as a json file and store the relevant fields as class properties. If a field is not provided, the default value is kept. Additional fields are ignored.
+
+        `calibration_data_filename`: File in which to store calibration records.
+
+        `measurement_data_filename`: File in which to store measurement records.
+
+        `ph_result_filename`: File in which to store the results of pH conversion when a measurement is performed.
+
+        `calibration_map_folder`: Directory in which to generate a new calibration map file for each measurement that is performed, to indicate which calibration data were used in the conversion of that measurement.
+
+        `prompt_history_filename`: File in which to store the command line session history, so that previous commands can be accessed with the up arrow even if the terminal is closed and then re-opened.
+
+        `timezone`: Time zone in which to store calibration and measurement records.
+
+        `debug`: If true, display a small number of additional error messages for diagnostic purposes.
+        """
         try:
             f = open(config_filename)
         except FileNotFoundError:
@@ -41,6 +63,9 @@ class Config():
 
     @classmethod
     def make_directories(cls):
+        """
+        Initialize the folder structure required by the file paths so the files can be created at runtime.
+        """
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
         for path in [cls.calibration_data_filename, cls.sensor_data_filename, cls.ph_data_filename, cls.prompt_history_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)
