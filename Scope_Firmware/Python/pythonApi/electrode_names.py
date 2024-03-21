@@ -1,5 +1,6 @@
-from constants import SelectionType, N_COLUMNS, N_ELECTRODES, ROW_LETTERS
+from constants import SelectionType, selection_type_names, N_COLUMNS, N_ELECTRODES, ROW_LETTERS, ALL_ELECTRODES_KEYWORD
 import numpy as np
+from typing import Optional
 
 class ElectrodeNameParseError(ValueError):
     """
@@ -21,16 +22,37 @@ class ElectrodeNames():
         return row, col
 
     @classmethod
-    def __select_range(cls, battleship_range: str, selection_type: SelectionType) -> list[int]:
+    def __select_range(cls, input: str) -> list[int]:
         """
-        Given a string representing two electrodes separated by a `-`, for example `A1-B5`, return a list of the electrodes that fall within that range using the appropriate selection method. The order of the electrodes doesn't matter.
+        Given a string representing two electrodes separated by a `-`, for example `A1-B5`, return a list of the electrodes that fall within that range using the appropriate selection method. The order of the electrodes doesn't matter, as they are sorted before being used. In addition to a range, a ':' may be used to denote a selection type, such as `A1-B5:excel`.
 
         For `ROW_WISE` selection, start at the start cell and move rightward until the end cell is reached, wrapping right-to-left as necessary. For `A1-B2`, return the electrode ids corresponding to [A1, A2, ... A12, B1, B2].
 
         For `COLUMN_WISE` selection, start at the start cell and move downward until the end cell is reached, wrapping bottom-to-top as necessary. For `A1-B2`, return the electrode ids corresponding to [A1, B1, C1, ... H1, A2, B2].
 
         For `EXCEL_LIKE` selection, select cells in a box, with the start cell as the top-left corner and the end cell as the bottom-right corner. For `A1-B2`, return the electrode ids corresponding to [A1, A2, B1, B2].
+
+        Default selection type is `EXCEL_LIKE`. A selection type is specified with a ':' and any prefix of a selection type name, such as `A1-B5:c`, `A1-B5:col`, or `A1-B5:column_wise`. The selection type may also be placed in front of the range, as in `c:A1-B5`.
         """
+        selection_type_parts = input.split(":")
+        if len(selection_type_parts) > 1:
+            try:
+                assert len(selection_type_parts) == 2
+                parsed_selection_type = cls.__parse_selection_type(selection_type_parts[0])
+                if parsed_selection_type is not None:
+                    selection_type = parsed_selection_type
+                    battleship_range = selection_type_parts[1]
+                else:
+                    parsed_selection_type = cls.__parse_selection_type(selection_type_parts[1])
+                    assert parsed_selection_type is not None
+                    selection_type = parsed_selection_type
+                    battleship_range = selection_type_parts[0]
+            except AssertionError:
+                raise ElectrodeNameParseError(f"Could not parse electrode input '{input}'. Reason: range may contain exactly one ':', and first or second argument must be a selection type ('excel_like', 'row_wise', or 'column_wise').")
+        else:
+            selection_type = SelectionType.EXCEL_LIKE
+            battleship_range = input
+
         try:
             battleships = battleship_range.split("-")
             assert len(battleships) == 2
@@ -89,20 +111,28 @@ class ElectrodeNames():
         raise ElectrodeNameParseError(f"Parsed an electrode input '{battleship} that was out of bounds (evaluated to {electrode_id}).")
 
     @classmethod
-    def parse_electrode_input(cls, input: str, selection_type: SelectionType = SelectionType.ROW_WISE) -> list[int]:
+    def parse_electrode_input(cls, input: str) -> list[int]:
         """
         Given a string containing one or more comma-separated ranges, such as `'A1-B5,H4-H9'`, return a list of the electrode ids contained withing the range, where each electrode id is an integer between 0 and 95. Do not accept any additional characters other than `-` and `,`. Electrode range is case-insensitve. Print an error message if parsing is not successful.
         """
 
-        if input == "all":
+        if input == ALL_ELECTRODES_KEYWORD:
             return list(range(N_ELECTRODES))
+
         electrode_ids = []
         for battleship in input.split(","):
             if "-" in battleship:
-                electrode_ids.extend(cls.__select_range(battleship, selection_type))
+                electrode_ids.extend(cls.__select_range(battleship))
             else:
                 electrode_ids.append(cls.__from_battleship_notation(battleship))
         return electrode_ids
+
+    @classmethod
+    def __parse_selection_type(cls, input: str) -> Optional[SelectionType]:
+        for selection_str in selection_type_names.keys():
+            if selection_str.startswith(input):
+                return selection_type_names[selection_str]
+        return None
 
     @classmethod
     def to_battleship_notation(cls, electrode_ids: list[int]) -> str:

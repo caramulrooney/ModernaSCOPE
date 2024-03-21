@@ -17,6 +17,18 @@ class SelectionType(Enum):
     COLUMN_WISE = 1
     EXCEL_LIKE = 2
 
+# prefixes are also allowed
+selection_type_names = {
+    "rowwise": SelectionType.ROW_WISE,
+    "row_wise": SelectionType.ROW_WISE,
+    "columnwise": SelectionType.COLUMN_WISE,
+    "column_wise": SelectionType.COLUMN_WISE,
+    "excellike": SelectionType.EXCEL_LIKE,
+    "excel_like": SelectionType.EXCEL_LIKE,
+    "excelwise": SelectionType.EXCEL_LIKE,
+    "excel_wise": SelectionType.EXCEL_LIKE,
+}
+
 init_text_art = """
 
 ___  ___      _ _   _       _              ______ _   _     _____
