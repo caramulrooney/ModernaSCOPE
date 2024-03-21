@@ -9,6 +9,11 @@ from typing import Protocol
 import time
 
 def unpack_namespace(func):
+    """
+    Decorator for parsing the arguments provided by `argparse.ArgumentParser`. The ArgumentParser passes a single Namespace object to its designated callback function. This decorator unpacks the namespace and passes the parameters as keyword arguments to the callback function. This allows the callback function to have a signature with explicit parameters.
+
+    Even so, it is important that the decorated function's signature exactly matches the arguments of the relevant subparser in commands.py.
+    """
     def inner(self, namespace):
         sig = inspect.signature(func)
         kwargs = vars(namespace)
@@ -18,7 +23,10 @@ def unpack_namespace(func):
     return inner
 
 class FloatCombiner(Protocol):
-    def __call__(self, *args: int) -> float: ...
+    """
+    Type hint class for functions which take any number of floats and return a float, for example `mean`.
+    """
+    def __call__(self, *args: float) -> float: ...
 
 class Sensor():
     def __init__(self):
@@ -52,6 +60,9 @@ class Sensor():
 
     @unpack_namespace
     def measure(self, electrodes, num_measurements, time_interval, show, voltage):
+        """
+        Callback function for 'measure' command.
+        """
         if Config.debug:
             print(f"Inside of measure, {electrodes=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
         electrode_ids_being_measured = ElectrodeNames.parse_electrode_input(electrodes)
@@ -76,6 +87,9 @@ class Sensor():
 
     @unpack_namespace
     def calibrate(self, ph, electrodes, num_measurements, time_interval, show, voltage):
+        """
+        Callback function for 'calibrate' command.
+        """
         if Config.debug:
             print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
         electrode_ids_being_calibrated = ElectrodeNames.parse_electrode_input(electrodes)
@@ -98,6 +112,9 @@ class Sensor():
 
     @unpack_namespace
     def reload_files(self, config_filename):
+        """
+        Callback function for 'load' command.
+        """
         if Config.debug:
             print(f"Inside of reload_files")
         if not len(config_filename) == 0:
@@ -107,6 +124,9 @@ class Sensor():
 
     @unpack_namespace
     def write_files(self, config_filename):
+        """
+        Callback function for 'write' command.
+        """
         if Config.debug:
             print(f"Inside of write_files")
         if not len(config_filename) == 0:
@@ -116,6 +136,9 @@ class Sensor():
 
     @unpack_namespace
     def show(self, ids: bool, electrodes: str, calibration_voltage: bool, calibration_ph: bool, voltage: bool, ph: bool):
+        """
+        Callback function for 'show' command.
+        """
         show_electrodes: bool = electrodes != ""
         if sum([ids, show_electrodes, calibration_voltage, calibration_ph, voltage, ph]) > 1:
             print("Please select only one option at a time.")
@@ -140,26 +163,41 @@ class Sensor():
 
     @unpack_namespace
     def generate_conversion_info(self, measurement_id: str):
+        """
+        Callback function for 'conversion_info' command.
+        """
         self.storage.calculate_ph(measurement_id, write_data = True)
 
     def show_most_recent_calibration_ph(self):
+        """
+        Helper function for 'show -cp' command.
+        """
         calibration_ph = self.storage.get_most_recent_calibration_ph()
         print(f"Showing the pH value being stored for the most recent calibration run. To see the associated voltages, use 'show -c'.")
         calibration_values = self.storage.get_most_recent_calibration()
         print(ElectrodeNames.electrode_ascii_art([f"{calibration_ph:.2f}" if val is not None else None for val in calibration_values]))
 
     def show_most_recent_calibration_voltage(self):
+        """
+        Helper function for 'show -cv' command.
+        """
         calibration_ph = self.storage.get_most_recent_calibration_ph()
         print(f"Showing voltages from the most recent calibration run in Volts. The pH value was {calibration_ph:.2f}.")
         calibration_values = self.storage.get_most_recent_calibration()
         print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in calibration_values]))
 
     def show_most_recent_measurement_voltage(self):
+        """
+        Helper function for 'show -v' command.
+        """
         print(f"Showing voltages from the most recent measurement in Volts. To see the calculated pH values, use 'show -p'.")
         voltage_values = self.storage.get_most_recent_measurement()
         print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}V" if val is not None else None for val in voltage_values]))
 
     def show_most_recent_measurement_ph(self):
+        """
+        Helper function for 'show -m' command.
+        """
         print(f"Showing pH values from the most recent measurement in pH units. To see the associated voltages, use 'show -v'.")
         ph_values = self.storage.get_most_recent_ph()
         print(ElectrodeNames.electrode_ascii_art([f"{val:.2f}" if val is not None else None for val in ph_values]))
