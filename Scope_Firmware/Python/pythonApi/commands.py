@@ -172,28 +172,36 @@ class Commands():
             self.show_most_recent_calibration_ph()
 
     @unpack_namespace
-    def reload_files(self, config_filename):
+    def reload_files(self, file):
         """
         Callback function for 'load' command.
         """
+        flag = False
         if Config.debug:
             print(f"Inside of reload_files")
-        if not len(config_filename) == 0:
-            Config.set_config(config_filename)
+        if not len(file) == 0:
+            flag = Config.set_config(file, mkdirs = True)
         self.sensor_data = SensorData()
-        print(f"Loaded data from the files specified in '{config_filename}'.")
+        if flag:
+            print(f"Loaded data from the files specified by '{file}'.")
+        else:
+            print("Loaded data from all files into memory.")
 
     @unpack_namespace
-    def write_files(self, config_filename):
+    def write_files(self, file):
         """
         Callback function for 'write' command.
         """
+        flag = False
         if Config.debug:
             print(f"Inside of write_files")
-        if not len(config_filename) == 0:
-            Config.set_config(config_filename)
+        if not len(file) == 0:
+            flag = Config.set_config(file, mkdirs = True)
         self.sensor_data.write_data()
-        print(f"Wrote data to the files specified in '{config_filename}'.")
+        if flag:
+            print(f"Updated data in the files specified by '{file}'.")
+        else:
+            print("Finished updating all files.")
 
     @unpack_namespace
     def show(self, ids: bool, electrodes: str, calibration_voltage: bool, calibration_ph: bool, voltage: bool, ph: bool):

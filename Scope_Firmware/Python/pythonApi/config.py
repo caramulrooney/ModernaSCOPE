@@ -18,7 +18,7 @@ class Config():
     debug = False
 
     @classmethod
-    def set_config(cls, config_filename: str, mkdirs: bool = True):
+    def set_config(cls, config_filename: str, mkdirs: bool) -> bool:
         """
         Read in configuration parameters as a json file and store the relevant fields as class properties. If a field is not provided, the default value is kept. Additional fields are ignored.
 
@@ -39,8 +39,8 @@ class Config():
         try:
             f = open(config_filename)
         except FileNotFoundError:
-            print(f"Could not open file {config_filename}. Using default configuration settings instead.")
-            return
+            print(f"Could not open file '{config_filename}'. Using default configuration settings instead.")
+            return False
 
         data = json.load(f)
         if "calibration_data_filename" in data.keys():
@@ -60,6 +60,7 @@ class Config():
 
         if mkdirs:
             cls.make_directories()
+        return True
 
     @classmethod
     def make_directories(cls):
@@ -67,5 +68,5 @@ class Config():
         Initialize the folder structure required by the file paths so the files can be created at runtime.
         """
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
-        for path in [cls.calibration_data_filename, cls.sensor_data_filename, cls.ph_data_filename, cls.prompt_history_filename]:
+        for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)
