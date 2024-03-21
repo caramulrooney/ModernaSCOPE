@@ -1,13 +1,15 @@
 from prompt_toolkit import PromptSession
 from prompt_toolkit.lexers import PygmentsLexer
+from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from prompt_toolkit.completion import NestedCompleter, WordCompleter
 from prompt_toolkit.history import FileHistory
 from constants import init_text_art
 from commands import Commands
-from lexer import CustomLexer, YesNoLexer
+from lexer import CliLexer, YesNoLexer, CliStyle, YesNoStyle
 from sensor_data import DataWritePermissionError, CalibrationError
 from electrode_names import ElectrodeNameParseError
 from config import Config
+
 
 def handle_data_write_exception(func):
     def inner_func(self, *args, **kwargs):
@@ -48,7 +50,10 @@ class SessionRunner():
     @handle_data_write_exception
     def retry_file_write(self):
         while True:
-            text = self.session.prompt("Retry now? [Y/n] ", lexer = PygmentsLexer(YesNoLexer)).strip()
+            text = self.session.prompt("Retry now? [Y/n] ",
+                style = style_from_pygments_cls(YesNoStyle),
+                lexer = PygmentsLexer(YesNoLexer)
+            ).strip()
             if text == "Y" or text == "":
                 self.commands.sensor_data.write_data()
                 print(f"Wrote data successfully.")
@@ -65,7 +70,8 @@ class SessionRunner():
     def run_session(self):
         while True:
             text = self.session.prompt("# ",
-                lexer = PygmentsLexer(CustomLexer),
+                lexer = PygmentsLexer(CliLexer),
+                style = style_from_pygments_cls(CliStyle),
                 completer = NestedCompleter.from_nested_dict(self.command_list)
             ).strip()
             self.execute(text)
