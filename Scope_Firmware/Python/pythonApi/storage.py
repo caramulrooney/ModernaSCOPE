@@ -272,7 +272,7 @@ class Storage():
         measurement_ts =  measurement_df.index[0]
         relevant_calibration_data = self.calibration_data[
             (self.calibration_data.index < measurement_ts) &
-            (self.calibration_data.index > measurement_ts - constants.max_calibration_time) &
+            (self.calibration_data.index > measurement_ts - constants.MAX_CALIBRATION_TIME) &
             (self.calibration_data["is_valid"])
         ]
         return relevant_calibration_data
@@ -281,7 +281,7 @@ class Storage():
         """
         Given a list of the most recent pH calibration values, determine if an older calibration pH value is close enough to any of the more recent values to be considered a duplicate. For example, if there are more recent pH calibration values of 4 and 7, then pH values of 4.1 or 7.1 would be considered duplicates, whereas a pH value of 10 would be accepted.
         """
-        return any(abs(np.array(ph_list) - ph) < constants.ph_epsilon)
+        return any(abs(np.array(ph_list) - ph) < constants.PH_EPSILON)
 
     def calibration_list_for_electrode(self, electrode_id: int, relevant_calibration_data: pd.DataFrame) -> pd.DataFrame:
         """

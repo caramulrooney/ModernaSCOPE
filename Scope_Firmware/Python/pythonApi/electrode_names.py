@@ -129,6 +129,9 @@ class ElectrodeNames():
 
     @classmethod
     def __parse_selection_type(cls, input: str) -> Optional[SelectionType]:
+        """
+        Check whether a given string is a selection type designator. If it is, return the selection type it corresponds to. If it is not, return None. A selection type designator is a prefix for any of the keys in constants.selection_type_names.
+        """
         for selection_str in selection_type_names.keys():
             if selection_str.startswith(input):
                 return selection_type_names[selection_str]
