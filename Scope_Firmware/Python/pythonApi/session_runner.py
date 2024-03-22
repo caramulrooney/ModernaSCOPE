@@ -2,6 +2,7 @@
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.completion import NestedCompleter, WordCompleter
+from prompt_toolkit.patch_stdout import patch_stdout
 
 # Lexer and styling features
 from prompt_toolkit.lexers import PygmentsLexer
@@ -106,22 +107,24 @@ class SessionRunner():
         self.session = PromptSession(history=FileHistory(Config.prompt_history_filename))
 
     @handle_data_write_exception
-    def retry_file_write(self):
+    async def retry_file_write(self):
         """
         Called during handling of a `DataWritePermissionError` because a command tried to write a file which is open in another program. Pause and ask the user to close the file, then prompt them to retry.
         """
-        while True:
-            text = self.session.prompt("Retry now? [Y/n] ",
-                style = style_from_pygments_cls(YesNoStyle),
-                lexer = PygmentsLexer(YesNoLexer)
-            ).strip()
-            if text == "Y" or text == "":
-                self.commands.sensor_data.write_data()
-                print(f"Wrote data successfully.")
-                return
-            if text == "n":
-                return
-            print("Invalid response.")
+        with patch_stdout():
+            while True:
+                text = await self.session.prompt_async("Retry now? [Y/n] ",
+                    style = style_from_pygments_cls(YesNoStyle),
+                    lexer = PygmentsLexer(YesNoLexer)
+                )
+                text = text.strip()
+                if text == "Y" or text == "":
+                    self.commands.sensor_data.write_data()
+                    print(f"Wrote data successfully.")
+                    return
+                if text == "n":
+                    return
+                print("Invalid response.")
 
     @handle_data_write_exception
     @handle_non_fatal_exception
@@ -131,15 +134,17 @@ class SessionRunner():
         """
         self.commands.execute(text)
 
-    def run_session(self):
+    async def run_session(self):
         """
         Start prompt session and respond to user input. This is a blocking loop and runs forever.
         """
-        print(init_text_art)
-        while True:
-            text = self.session.prompt("# ",
-                lexer = PygmentsLexer(CliLexer),
-                style = style_from_pygments_cls(CliStyle),
-                completer = NestedCompleter.from_nested_dict(self.command_list)
-            ).strip()
-            self.execute(text)
+        with patch_stdout():
+            print(init_text_art)
+            while True:
+                text = await self.session.prompt_async("# ",
+                    lexer = PygmentsLexer(CliLexer),
+                    style = style_from_pygments_cls(CliStyle),
+                    completer = NestedCompleter.from_nested_dict(self.command_list)
+                )
+                text = text.strip()
+                self.execute(text)

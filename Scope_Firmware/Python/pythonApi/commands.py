@@ -4,7 +4,7 @@ from config import Config
 import inspect
 from numpy.random import rand
 import numpy as np
-import time
+import asyncio
 from typing import Protocol
 from sensor_data import SensorData
 from electrode_names import ElectrodeNames
@@ -120,7 +120,7 @@ class Commands():
     # callback functions
 
     @unpack_namespace
-    def measure(self, electrodes, num_measurements, time_interval, show, voltage):
+    async def measure(self, electrodes, num_measurements, time_interval, show, voltage):
         """
         Callback function for 'measure' command.
         """
@@ -130,7 +130,7 @@ class Commands():
         if Config.debug:
             print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
 
-        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
+        voltages = await self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
@@ -147,7 +147,7 @@ class Commands():
             self.show_most_recent_measurement_ph()
 
     @unpack_namespace
-    def calibrate(self, ph, electrodes, num_measurements, time_interval, show, voltage):
+    async def calibrate(self, ph, electrodes, num_measurements, time_interval, show, voltage):
         """
         Callback function for 'calibrate' command.
         """
@@ -157,7 +157,7 @@ class Commands():
         if Config.debug:
             print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
 
-        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
+        voltages = await self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
@@ -279,7 +279,7 @@ class Commands():
 
     # sensor interface functions
 
-    def get_voltages_blocking(self, n_measurements: int = 2, delay_between_measurements: float = 2, average_func: FloatCombiner = np.mean):
+    async def get_voltages_blocking(self, n_measurements: int = 2, delay_between_measurements: float = 2, average_func: FloatCombiner = np.mean):
         """
         Perform a certain number of consecutive measurements and report the average voltage at each electrode over the duration of the measurement.
         """
@@ -287,7 +287,7 @@ class Commands():
         voltages = np.zeros((n_measurements, N_ELECTRODES)) # 2-D array, n_measurements tall and N_ELECTRODES wide
         for measurement in range(n_measurements):
             voltages[measurement] = self.get_voltages_single() # set the next row of the array
-            time.sleep(delay_between_measurements)
+            await asyncio.sleep(delay_between_measurements)
             print(f"\tMeasurement #{measurement + 1} of {n_measurements} completed.")
 
         # take the average of all the voltage readings over time for each electrode
