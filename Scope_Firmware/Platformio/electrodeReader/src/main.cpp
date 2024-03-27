@@ -154,16 +154,27 @@ void selectElectrode(int electrode) {
 }
 
 void setup_ads1110() {
-    config myConfig = config();
+    config myConfig;
+
+    // Initialize configuration settings
+    myConfig.ST_DRDY = 1;
+    myConfig.PLACE_HOLDER_1 = 0;
+    myConfig.PLACE_HOLDER_0 = 0;
+    myConfig.SC_BIT = 0;  // Continuous conversion mode
+    myConfig.DR_1 = 0;    // 240 samples per second
+    myConfig.DR_0 = 0;
+    myConfig.PGA_1 = 0;  // Gain of 1
+    myConfig.PGA_0 = 1;
+
     configRegister =
-        (myConfig.ST_DRDY << 7) +
-        (myConfig.PLACE_HOLDER_1 << 6) +
-        (myConfig.PLACE_HOLDER_0 << 5) +
-        (myConfig.SC_BIT << 4) +
-        (myConfig.DR_1 << 3) +
-        (myConfig.DR_0 << 2) +
-        (myConfig.PGA_1 << 1) +
-        (myConfig.PGA_0 << 0);
+        (myConfig.ST_DRDY << 7) +           // Bit 7: ST_DRDY
+        (myConfig.PLACE_HOLDER_1 << 6) +    // Bit 6: PLACE_HOLDER_1
+        (myConfig.PLACE_HOLDER_0 << 5) +    // Bit 5: PLACE_HOLDER_0
+        (myConfig.SC_BIT << 4) +            // Bit 4: SC_BIT
+        (myConfig.DR_1 << 3) +              // Bit 3: DR_1
+        (myConfig.DR_0 << 2) +              // Bit 2: DR_0
+        (myConfig.PGA_1 << 1) +             // Bit 1: PGA_1
+        (myConfig.PGA_0 << 0);              // Bit 0: PGA_0
 
 #ifdef DEBUG
     Serial.print("Writing config register...   ");
