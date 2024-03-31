@@ -13,19 +13,20 @@ float calculateVoltage(int electrode, bool* status);
 // Define the I2C address for the ADS1110
 #define ads1110 0x49
 
-// Define ADC select pins
-#define D0 16
-#define D1 5
-#define D2 4
-#define D3 0
-#define D4 2
-#define D5 14
-#define D6 12
-#define D7 13
-#define D8 15
+// Define ESP8266 Pinout
+// #define D0 16
+// #define D1 5
+// #define D2 4
+// #define D3 0
+// #define D4 2
+// #define D5 14
+// #define D6 12
+// #define D7 13
+// #define D8 15
 
 #define nSelectPins 7
-int selectPins[] = {D0, D3, D4, D5, D6, D7, D8};
+int selectPins[] = {13, 41, 40, 36, 37, 38, 39};
+// int selectPins[] = {D0, D3, D4, D7, D6, D5, D8};
 float voltages[NUM_ELECTRODES];
 
 // configuration bits
@@ -53,13 +54,13 @@ void setup() {
 
     // Initialize the wire library for I2C communication
     Wire.begin();
-    pinMode(D0, OUTPUT);
-    pinMode(D3, OUTPUT);
-    pinMode(D4, OUTPUT);
-    pinMode(D5, OUTPUT);
-    pinMode(D6, OUTPUT);
-    pinMode(D7, OUTPUT);
-    pinMode(D8, OUTPUT);
+    pinMode(selectPins[0], OUTPUT);
+    pinMode(selectPins[1], OUTPUT);
+    pinMode(selectPins[2], OUTPUT);
+    pinMode(selectPins[3], OUTPUT);
+    pinMode(selectPins[4], OUTPUT);
+    pinMode(selectPins[5], OUTPUT);
+    pinMode(selectPins[6], OUTPUT);
 
     setup_ads1110();
 }
@@ -68,6 +69,10 @@ void loop() {
     if (Serial.available() > 0) {
         char receivedChar = Serial.read();
         if (receivedChar == 'e') {
+            // bool status = false;
+            // Serial.println(calculateVoltage(4, &status));
+            // return;
+
             // read voltages from electrodes
             for (int i = 0; i < NUM_ELECTRODES; i++) {
                 bool status = false;
@@ -167,14 +172,14 @@ void setup_ads1110() {
     myConfig.PGA_0 = 1;
 
     configRegister =
-        (myConfig.ST_DRDY << 7) +           // Bit 7: ST_DRDY
-        (myConfig.PLACE_HOLDER_1 << 6) +    // Bit 6: PLACE_HOLDER_1
-        (myConfig.PLACE_HOLDER_0 << 5) +    // Bit 5: PLACE_HOLDER_0
-        (myConfig.SC_BIT << 4) +            // Bit 4: SC_BIT
-        (myConfig.DR_1 << 3) +              // Bit 3: DR_1
-        (myConfig.DR_0 << 2) +              // Bit 2: DR_0
-        (myConfig.PGA_1 << 1) +             // Bit 1: PGA_1
-        (myConfig.PGA_0 << 0);              // Bit 0: PGA_0
+        (myConfig.ST_DRDY << 7) +         // Bit 7: ST_DRDY
+        (myConfig.PLACE_HOLDER_1 << 6) +  // Bit 6: PLACE_HOLDER_1
+        (myConfig.PLACE_HOLDER_0 << 5) +  // Bit 5: PLACE_HOLDER_0
+        (myConfig.SC_BIT << 4) +          // Bit 4: SC_BIT
+        (myConfig.DR_1 << 3) +            // Bit 3: DR_1
+        (myConfig.DR_0 << 2) +            // Bit 2: DR_0
+        (myConfig.PGA_1 << 1) +           // Bit 1: PGA_1
+        (myConfig.PGA_0 << 0);            // Bit 0: PGA_0
 
 #ifdef DEBUG
     Serial.print("Writing config register...   ");
