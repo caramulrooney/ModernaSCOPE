@@ -2,6 +2,7 @@
 import serial
 import json
 import matplotlib.pyplot as plt
+from numpy.random import rand
 
 which_electrode = 68 # electrode id to plot
 measurement_interval = 1 # seconds
@@ -17,8 +18,11 @@ def request_electrode_data(n_tries = 5):
                 electrode_data = json.loads(response) # parse json data
                 print("Electrode voltages: ", electrode_data)
                 return electrode_data
-        except UnicodeDecodeError:
+        except (UnicodeDecodeError, serial.serialutil.SerialException):
             pass
+    print("Returning random numbers")
+    plt.title("Random data")
+    return rand(96).tolist()
 
 if __name__ == "__main__":
     # plt.ion()
