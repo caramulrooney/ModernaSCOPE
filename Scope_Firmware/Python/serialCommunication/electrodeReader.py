@@ -1,10 +1,23 @@
+"""Usage: prog [-e electrode]
+
+Arguments:
+-e electrode
+"""
+from docopt import docopt
+
 # Import libraries
 import serial
 import json
 import matplotlib.pyplot as plt
 from numpy.random import rand
 
-which_electrode = 68 # electrode id to plot
+arguments = docopt(__doc__)  # parse arguments based on docstring above
+print(arguments)
+if arguments["-e"] is None:
+    which_electrode = 6 # electrode id to plot
+else:
+    which_electrode = int(arguments["-e"]) # electrode id to plot
+
 measurement_interval = 1 # seconds
 
 def request_electrode_data(n_tries = 5):
@@ -18,7 +31,7 @@ def request_electrode_data(n_tries = 5):
                 electrode_data = json.loads(response) # parse json data
                 print("Electrode voltages: ", electrode_data)
                 return electrode_data
-        except (UnicodeDecodeError, serial.serialutil.SerialException):
+        except (UnicodeDecodeError, serial.SerialException):
             pass
     print("Returning random numbers")
     plt.title("Random data")
@@ -29,7 +42,7 @@ if __name__ == "__main__":
     voltage_at_electrode = []
     ts = []
     now = 0
-    fig, ax1 = plt.subplots(1, 1, figsize = (6, 6))
+    fig, ax1 = plt.subplots(1, 1, figsize = (8, 3))
 
     while True:
         data = request_electrode_data()

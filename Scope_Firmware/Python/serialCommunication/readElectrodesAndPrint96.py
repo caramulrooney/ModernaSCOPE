@@ -13,19 +13,19 @@ measurement_interval = electrode_reading_delay + 1 # seconds
 
 def request_electrode_data(n_tries = 5):
     # with serial.Serial('/dev/ttyUSB0', 115200, timeout=1) as ser: # TO DO: change serial port
-    # for i in range(n_tries):
-    #     try:
-    #         with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
-    #             ser.write(b'e') # send request for electrode data
-    #             plt.pause(electrode_reading_delay)
-    #             response = ser.readline().decode().strip() # read response
-    #             print(response)
-    #             electrode_data = json.loads(response) # parse json data
-    #             # print("Electrode voltages: ", electrode_data)
-    #             print("Returning electrode voltages")
-    #             return electrode_data
-    #     except UnicodeDecodeError:
-    #         pass
+    for i in range(n_tries):
+        try:
+            with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
+                ser.write(b'e') # send request for electrode data
+                time.sleep(electrode_reading_delay)
+                response = ser.readline().decode().strip() # read response
+                # print(response)
+                electrode_data = json.loads(response) # parse json data
+                # print("Electrode voltages: ", electrode_data)
+                print("Returning electrode voltages")
+                return electrode_data
+        except UnicodeDecodeError:
+            pass
     print("Returning random numbers")
     return rand(96).tolist()
 
@@ -71,9 +71,12 @@ def electrode_ascii_art(vals: any) -> str:
 
 
 if __name__ == "__main__":
+    counter = 0
     while True:
         data = request_electrode_data()
         art = electrode_ascii_art([str(np.round(val, 3)) for val in data])
+        counter += 1
+        print(f"Measurement {counter}:")
         print(art)
         time.sleep(measurement_interval)
 

@@ -3,31 +3,36 @@
 #include <SPI.h>
 #include <Wire.h>
 
-#define NUM_ELECTRODES 96
+// #define TEENSY
+#define ESP8266
 // #define DEBUG
+
+#define NUM_ELECTRODES 96
+#define nSelectPins 7
+float voltages[NUM_ELECTRODES];
+#define ads1110 0x49  // Define the I2C address for the ADS1110
 
 void setup_ads1110();
 void selectElectrode(int electrode_id);
 float calculateVoltage(int electrode, bool* status);
 
-// Define the I2C address for the ADS1110
-#define ads1110 0x49
-
 // Define ESP8266 Pinout
-// #define D0 16
-// #define D1 5
-// #define D2 4
-// #define D3 0
-// #define D4 2
-// #define D5 14
-// #define D6 12
-// #define D7 13
-// #define D8 15
+#ifdef ESP8266
+#define D0 16
+#define D1 5
+#define D2 4
+#define D3 0
+#define D4 2
+#define D5 14
+#define D6 12
+#define D7 13
+#define D8 15
+int selectPins[] = {D0, D3, D4, D7, D6, D5, D8};
+#endif
 
-#define nSelectPins 7
+#ifdef TEENSY
 int selectPins[] = {13, 41, 40, 36, 37, 38, 39};
-// int selectPins[] = {D0, D3, D4, D7, D6, D5, D8};
-float voltages[NUM_ELECTRODES];
+#endif
 
 // configuration bits
 typedef struct {
