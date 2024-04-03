@@ -1,7 +1,7 @@
 from session_runner import SessionRunner
 from config import Config
 import argparse
-import asyncio
+from threading import Thread, Event, Timer
 
 # parse command line arguments
 parser = argparse.ArgumentParser("config")
@@ -10,22 +10,28 @@ parser.add_argument("-d", "--mkdirs", action = "store_true")
 args = parser.parse_args()
 Config.set_config(args.config, args.mkdirs)
 
-async def print_counter():
-    """
-    Coroutine that prints counters.
-    """
-    try:
-        i = 0
-        while True:
-            print("Counter: %i" % i)
-            i += 1
-            await asyncio.sleep(3)
-    except asyncio.CancelledError:
-        print("Background task cancelled.")
+class IntervalTimer(Timer):
+    def __init__(self, *args, daemon = True, **kwargs):
+        """
+        Add option to set daemon property during initialization.
+        """
+        super().__init__(*args, **kwargs)
+        self.daemon = daemon
 
-async def main():
-    background_task = asyncio.create_task(print_counter())
-    session_runner = SessionRunner()
-    await session_runner.run_session()
+    def run(self):
+        """
+        Run indefinitely. Restart the timer as soon as it has elapased.
+        """
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
 
-asyncio.run(main())
+class Counter():
+    val = 0
+    def update(self):
+        print(self.val)
+        self.val += 1
+
+myCounter = Counter()
+background_task = IntervalTimer(1, myCounter.update, daemon = True).start()
+session_runner = SessionRunner()
+session_runner.run_session()
