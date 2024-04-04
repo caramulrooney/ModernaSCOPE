@@ -8,6 +8,7 @@ import time
 from typing import Protocol
 from sensor_data import SensorData
 from electrode_names import ElectrodeNames
+from sensor_interface import SensorInterface
 
 class FloatCombiner(Protocol):
     """
@@ -21,8 +22,9 @@ class Commands():
 
     The heavy lifting of parsing is done by `argparse.ArgumentParser`. The available commands are initialized in self.make_parsers(). Each command has a callback function which is defined below.
     """
-    def __init__(self):
+    def __init__(self, sensor_interface: SensorInterface):
         self.sensor_data = SensorData()
+        self.sensor_interface = sensor_interface
 
         self.parser = ArgumentParser(prog="", exit_on_error = False, description =
     """This is the pH sensor command-line interface. To run, type one of the positional arguments followed by parameters and flags as necessary. For example, try running `# measure -vn` to measure the voltages at each of the electrodes. Type any command with the -h flag to see the options for that command.""")
@@ -53,7 +55,7 @@ class Commands():
     print the results in a tabular format.""")
         measure_parser.add_argument('-e', '--electrodes', type = str, default = ALL_ELECTRODES_KEYWORD, help = "Electrode range to measure. Default is all 96 electrodes.")
         measure_parser.add_argument('-n', '--num_measurements', type = int, default = 5, help = "Number of measurements to take and average together. Default is 5 measurements.")
-        measure_parser.add_argument('-t', '--time_interval', type = float, default = 2, help = "Time interval between measurements (minimum: 2 seconds, default: 2 seconds).")
+        measure_parser.add_argument('-p', '--past_data', action = 'store_true', help = "Read the past n measurements and, if so many measurements exist already, return immediately.")
         measure_parser.add_argument('-s', '--show', action = 'store_true', help = "Show the pH values after they are measured.")
         measure_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage values after they are measured.")
         measure_parser.set_defaults(func = self.measure)
@@ -120,17 +122,23 @@ class Commands():
     # callback functions
 
     @unpack_namespace
-    def measure(self, electrodes, num_measurements, time_interval, show, voltage):
+    def measure(self, electrodes, num_measurements, past_data, show, voltage):
         """
         Callback function for 'measure' command.
         """
         if Config.debug:
-            print(f"Inside of measure, {electrodes=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
+            print(f"Inside of measure, {electrodes=}, {num_measurements=}, {past_data=}, {show=}, {voltage=}")
         electrode_ids_being_measured = ElectrodeNames.parse_electrode_input(electrodes)
         if Config.debug:
             print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
 
-        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
+        if past_data:
+            voltages = self.sensor_interface.get_past_voltages_blocking(num_measurements)
+        else:
+            voltages = self.sensor_interface.get_future_voltages_blocking(num_measurements)
+        # voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
+        print(f"{voltages = }")
+        voltages = self.combine_readings_element_wise(voltages)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
@@ -278,6 +286,21 @@ class Commands():
         return rand(1, N_ELECTRODES)
 
     # sensor interface functions
+
+    def combine_readings_element_wise(self, readings: list[list[float]], average_func: FloatCombiner = np.mean) -> list[float]:
+        # take the average of all the voltage readings over time for each electrode
+        # [
+        #     [ N_ELECTRODES ]
+        #     [ N_ELECTRODES ]
+        #     [ N_ELECTRODES ]
+        #           ...
+        #      n_measurements
+        # ]
+        readings_array = np.array(readings)
+        print(f"{readings_array = }")
+        averaged = average_func(readings_array, axis = 0) # column-wise
+        print(f"{averaged = }")
+        return list(averaged)
 
     def get_voltages_blocking(self, n_measurements: int = 2, delay_between_measurements: float = 2, average_func: FloatCombiner = np.mean):
         """

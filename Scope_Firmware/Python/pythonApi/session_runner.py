@@ -17,6 +17,7 @@ from commands import Commands
 from sensor_data import DataWritePermissionError, CalibrationError
 from electrode_names import ElectrodeNameParseError
 from config import Config
+from sensor_interface import SensorInterface, IntervalTimer
 
 class CliStyle(Style):
     styles = {
@@ -89,7 +90,7 @@ class SessionRunner():
     # mirroring the structure in commands.py
     # used for prompt autocompletion
     command_list = {
-        "measure": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-t', '--time_interval', '-s', '--show', '-v', '--voltage', ]),
+        "measure": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-p', '--past_data', '-s', '--show', '-v', '--voltage', ]),
         "calibrate": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-t', '--time_interval', '-s', '--show', '-v', '--voltage', ]),
         "show": WordCompleter(['-i', '--ids', '-e', '--electrodes', '-cv', '--calibration_voltage', '-cp', '--calibration_ph', '-p', '--ph', '-v', '--voltage']),
         "load": WordCompleter(['-f', '--file', ]),
@@ -103,7 +104,10 @@ class SessionRunner():
         """
         Initialize prompt session.
         """
-        self.commands = Commands()
+        sensor_interface = SensorInterface()
+        IntervalTimer(1, sensor_interface.update).start()
+
+        self.commands = Commands(sensor_interface)
         self.session = PromptSession(history=FileHistory(Config.prompt_history_filename))
 
     @handle_data_write_exception
