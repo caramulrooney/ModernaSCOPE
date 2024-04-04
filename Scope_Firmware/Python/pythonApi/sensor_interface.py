@@ -2,6 +2,9 @@ from numpy.random import rand
 from collections import deque
 from constants import N_ELECTRODES
 from threading import Event, Timer
+from config import Config
+from electrode_names import ElectrodeNames
+import numpy as np
 
 class MeasurementInterrupt(KeyboardInterrupt):
     """
@@ -51,6 +54,7 @@ class SensorInterface():
 
     def update(self):
         self.__store_voltages_in_cache()
+        self.write_to_file()
         print(f"Number of measurements pending: {len(self.measurements_pending)}")
         requests_to_delete = []
         for i, measurement_request in enumerate(self.measurements_pending):
@@ -107,3 +111,12 @@ class SensorInterface():
 
     def get_past_voltages_blocking(self, n: int) -> list[float]:
         return self.evaluate_promise_blocking(self.__get_voltages_promise(n, future = False))
+
+    def write_to_file(self):
+        if len(self.cache) <= 0:
+            if Config.debug:
+                print("Returning from write_to_file because cache length is zero.")
+            return
+        with open(Config.voltage_display_filename, "w") as display_file:
+            display_file.write(ElectrodeNames.electrode_ascii_art(self.cache[-1]))
+

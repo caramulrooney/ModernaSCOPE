@@ -90,7 +90,7 @@ class SessionRunner():
     # used for prompt autocompletion
     command_list = {
         "measure": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-p', '--past_data', '-s', '--show', '-v', '--voltage', ]),
-        "calibrate": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-t', '--time_interval', '-s', '--show', '-v', '--voltage', ]),
+        "calibrate": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-p', '--past_data', '-s', '--show', '-v', '--voltage', ]),
         "show": WordCompleter(['-i', '--ids', '-e', '--electrodes', '-cv', '--calibration_voltage', '-cp', '--calibration_ph', '-p', '--ph', '-v', '--voltage']),
         "load": WordCompleter(['-f', '--file', ]),
         "write": WordCompleter(['-f', '--file', ]),

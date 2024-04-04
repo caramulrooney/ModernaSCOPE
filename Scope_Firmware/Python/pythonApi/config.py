@@ -9,6 +9,7 @@ class Config():
 
     If necessary, use make_directories() to initialize the folder structure so the data files can be created at runtime.
     """
+    voltage_display_filename = "display/voltage_display.txt"
     calibration_data_filename = "sensor_data/calibration_data.csv"
     measurement_data_filename = "sensor_data/measurement_data.csv"
     ph_result_filename = "sensor_data/ph_result.csv"
@@ -43,6 +44,8 @@ class Config():
             return False
 
         data = json.load(f)
+        if "voltage_display_filename" in data.keys():
+            cls.voltage_display_filename = data["voltage_display_filename"]
         if "calibration_data_filename" in data.keys():
             cls.calibration_data_filename = data["calibration_data_filename"]
         if "measurement_data_filename" in data.keys():
@@ -68,5 +71,5 @@ class Config():
         Initialize the folder structure required by the file paths so the files can be created at runtime.
         """
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
-        for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename]:
+        for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename, cls.voltage_display_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)

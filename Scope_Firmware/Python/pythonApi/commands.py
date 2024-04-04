@@ -72,7 +72,7 @@ class Commands():
         calibrate_parser.add_argument('ph', type = float, help = "The pH of the buffer currently applied to the electrodes being calibrated.")      # option that takes a value
         calibrate_parser.add_argument('-e', '--electrodes', type = str, default = ALL_ELECTRODES_KEYWORD, help = "Electrode range to calibrate. Default is all 96 electrodes.")      # option that takes a value
         calibrate_parser.add_argument('-n', '--num_measurements', type = int, default = 5, help = "Number of measurements to take and average together. Default is 5 measurements.")
-        calibrate_parser.add_argument('-t', '--time_interval', type = float, default = 2, help = "Time interval between measurements (minimum: 2 seconds, default: 2 seconds).")
+        calibrate_parser.add_argument('-p', '--past_data', action = 'store_true', help = "Read the past n measurements and, if so many measurements exist already, return immediately.")
         calibrate_parser.add_argument('-s', '--show', action = 'store_true', help = "Show the pH values after they are measured.")
         calibrate_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltage values after they are measured.")
         calibrate_parser.set_defaults(func = self.calibrate)
@@ -155,17 +155,21 @@ class Commands():
             self.show_most_recent_measurement_ph()
 
     @unpack_namespace
-    def calibrate(self, ph, electrodes, num_measurements, time_interval, show, voltage):
+    def calibrate(self, ph, electrodes, num_measurements, past_data, show, voltage):
         """
         Callback function for 'calibrate' command.
         """
         if Config.debug:
-            print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {time_interval=}, {show=}, {voltage=}")
+            print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {past_data=}, {show=}, {voltage=}")
         electrode_ids_being_calibrated = ElectrodeNames.parse_electrode_input(electrodes)
         if Config.debug:
             print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
 
-        voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
+        if past_data:
+            voltages = self.sensor_interface.get_past_voltages_blocking(num_measurements)
+        else:
+            voltages = self.sensor_interface.get_future_voltages_blocking(num_measurements)
+        # voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):

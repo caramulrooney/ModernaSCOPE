@@ -1,4 +1,5 @@
 {
+  "voltage_display_filename": "display/voltage_display.txt",
   "calibration_data_filename": "sensor_data/calibration_data.csv",
   "measurement_data_filename": "sensor_data/measurement_data.csv",
   "ph_result_filename": "sensor_data/ph_result.csv",

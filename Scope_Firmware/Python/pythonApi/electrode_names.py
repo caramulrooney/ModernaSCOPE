@@ -184,8 +184,10 @@ class ElectrodeNames():
         for val in vals:
             if val is None:
                 val = "."
-            if not isinstance(vals, str):
-                vals = str(vals)
+            if isinstance(val, float):
+                val = np.round(val, 3)
+            if not isinstance(val, str):
+                val = str(val)
             assert len(val) <= max_len
             v.append(" " * int(np.ceil((max_len - len(val)) / 2)) + val + " " * int(np.floor((max_len - len(val)) / 2)))
 
