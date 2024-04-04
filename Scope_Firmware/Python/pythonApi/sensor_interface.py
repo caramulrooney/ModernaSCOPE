@@ -3,6 +3,11 @@ from collections import deque
 from constants import N_ELECTRODES
 from threading import Event, Timer
 
+class MeasurementInterrupt(KeyboardInterrupt):
+    """
+    Exception for handling a keyboard interrupt during a measurement. The top-level program should handle a keyboard interrupt during this action and abort the measurement but continue running at the main prompt.
+    """
+
 class IntervalTimer(Timer):
     def __init__(self, *args, **kwargs):
         """
@@ -24,7 +29,7 @@ class MeasurementRequest():
         self.n_points_remaining = n_points_remaining
         self.ready = Event()
         self.data = None
-        self.has_been_read = Event()
+        self.has_been_read = False
 
 class SensorInterface():
     def __init__(self, cache_size: int = 100):
@@ -47,8 +52,16 @@ class SensorInterface():
     def update(self):
         self.__store_voltages_in_cache()
         print(f"Number of measurements pending: {len(self.measurements_pending)}")
-        for measurement_request in self.measurements_pending:
+        requests_to_delete = []
+        for i, measurement_request in enumerate(self.measurements_pending):
             self.__check_if_promise_is_fulfilled(measurement_request)
+            if measurement_request.has_been_read:
+                requests_to_delete.append(i)
+        # delete the elements in a second step
+        for i in requests_to_delete:
+            print(f"deleting measurement request {i}")
+            del self.measurements_pending[i]
+
 
         print(f"length of data deque: {len(self.cache)}")
 
@@ -77,11 +90,17 @@ class SensorInterface():
         return list(self.cache)[-n:]
 
     def evaluate_promise_blocking(self, promise: MeasurementRequest) -> list[float]:
-        promise.ready.wait()
-        print("promise is ready!")
-        return_data = self.__get_cache(promise.n_data_points)
-        del promise
-        return return_data
+        try:
+            while not promise.ready.wait(0.1):
+                pass
+        except KeyboardInterrupt:
+            promise.has_been_read = True
+            raise MeasurementInterrupt("Aborting measurement due to keyboard interrupt.")
+        else:
+            print("promise is ready!")
+            return_data = self.__get_cache(promise.n_data_points)
+            promise.has_been_read = True # flag the request as completed so it can be deleted
+            return return_data
 
     def get_future_voltages_blocking(self, n: int) -> list[float]:
         return self.evaluate_promise_blocking(self.__get_voltages_promise(n, future = True))

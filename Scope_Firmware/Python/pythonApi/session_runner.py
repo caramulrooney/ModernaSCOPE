@@ -15,6 +15,7 @@ from pygments.token import Token
 from constants import init_text_art
 from commands import Commands
 from sensor_data import DataWritePermissionError, CalibrationError
+from sensor_interface import MeasurementInterrupt
 from electrode_names import ElectrodeNameParseError
 from config import Config
 from sensor_interface import SensorInterface, IntervalTimer
@@ -77,9 +78,7 @@ def handle_non_fatal_exception(func):
     def inner_func(self, *args, **kwargs):
         try:
             func(self, *args ,**kwargs)
-        except CalibrationError as ex:
-            print(ex)
-        except ElectrodeNameParseError as ex:
+        except (CalibrationError, ElectrodeNameParseError, MeasurementInterrupt) as ex:
             print(ex)
     return inner_func
 
