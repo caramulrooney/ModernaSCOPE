@@ -1,3 +1,7 @@
+# External libraries
+from serial import SerialException
+from threading import Timer, Thread
+
 # Prompt and autocompletion features
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -16,9 +20,25 @@ from constants import init_text_art
 from commands import Commands
 from sensor_data import DataWritePermissionError, CalibrationError
 from sensor_interface import MeasurementInterrupt
-from electrode_names import ElectrodeNameParseError
+from electrode_names import ElectrodeNames, ElectrodeNameParseError
 from config import Config
-from sensor_interface import SensorInterface, IntervalTimer
+from sensor_interface import SensorInterface
+from sensor_display import SensorDisplay
+
+class IntervalTimer(Timer):
+    def __init__(self, *args, **kwargs):
+        """
+        Set daemon property to True during initialization.
+        """
+        super().__init__(*args, **kwargs)
+        self.daemon = True
+
+    def run(self):
+        """
+        Run indefinitely. Restart the timer as soon as it has elapased.
+        """
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
 
 class CliStyle(Style):
     styles = {
@@ -78,7 +98,7 @@ def handle_non_fatal_exception(func):
     def inner_func(self, *args, **kwargs):
         try:
             func(self, *args ,**kwargs)
-        except (CalibrationError, ElectrodeNameParseError, MeasurementInterrupt) as ex:
+        except (CalibrationError, ElectrodeNameParseError, MeasurementInterrupt, SerialException) as ex:
             print(ex)
     return inner_func
 
@@ -88,10 +108,12 @@ class SessionRunner():
     """
     # mirroring the structure in commands.py
     # used for prompt autocompletion
+    # used for prompt autocompletion
     command_list = {
         "measure": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-p', '--past_data', '-s', '--show', '-v', '--voltage', ]),
         "calibrate": WordCompleter(['-e', '--electrodes', '-n', '--num_measurements', '-p', '--past_data', '-s', '--show', '-v', '--voltage', ]),
         "show": WordCompleter(['-i', '--ids', '-e', '--electrodes', '-cv', '--calibration_voltage', '-cp', '--calibration_ph', '-p', '--ph', '-v', '--voltage']),
+        "monitor": WordCompleter(['-e', '--electrodes', '-f', '--file', '-g', '--graph']),
         "load": WordCompleter(['-f', '--file', ]),
         "write": WordCompleter(['-f', '--file', ]),
         "conversion_info": WordCompleter(['-m', '--measurement_id', ]),
@@ -104,9 +126,11 @@ class SessionRunner():
         Initialize prompt session.
         """
         sensor_interface = SensorInterface()
-        IntervalTimer(1, sensor_interface.update).start()
+        IntervalTimer(Config.measurement_interval, sensor_interface.update).start()
 
-        self.commands = Commands(sensor_interface)
+        sensor_display = SensorDisplay(sensor_interface)
+
+        self.commands = Commands(sensor_interface, sensor_display)
         self.session = PromptSession(history=FileHistory(Config.prompt_history_filename))
 
     @handle_data_write_exception

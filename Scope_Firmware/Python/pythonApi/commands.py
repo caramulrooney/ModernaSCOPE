@@ -9,6 +9,7 @@ from typing import Protocol
 from sensor_data import SensorData
 from electrode_names import ElectrodeNames
 from sensor_interface import SensorInterface
+from sensor_display import SensorDisplay
 
 class FloatCombiner(Protocol):
     """
@@ -22,9 +23,10 @@ class Commands():
 
     The heavy lifting of parsing is done by `argparse.ArgumentParser`. The available commands are initialized in self.make_parsers(). Each command has a callback function which is defined below.
     """
-    def __init__(self, sensor_interface: SensorInterface):
+    def __init__(self, sensor_interface: SensorInterface, sensor_display: SensorDisplay):
         self.sensor_data = SensorData()
         self.sensor_interface = sensor_interface
+        self.sensor_display = sensor_display
 
         self.parser = ArgumentParser(prog="", exit_on_error = False, description =
     """This is the pH sensor command-line interface. To run, type one of the positional arguments followed by parameters and flags as necessary. For example, try running `# measure -vn` to measure the voltages at each of the electrodes. Type any command with the -h flag to see the options for that command.""")
@@ -83,12 +85,19 @@ class Commands():
         show_parser = self.subparsers.add_parser("show", prog = "show", exit_on_error = exit_on_error, description =
     """Display information about the selected electrodes, most recent calibrations, and measurements.""")
         show_parser.add_argument('-i', '--ids', action = 'store_true', help = "Show how the A1-H12 notation is mapped onto the electrode index in the code. This can be useful for debugging or for inspecting the CSV files where calibration and measurement data are stored.")
-        show_parser.add_argument('-e', '--electrodes', type = str, default = "", help = "Show which electrodes are selected by providing a range in A1-H12 notation.")
+        show_parser.add_argument('-e', '--electrodes', type = str, default = "all", help = "Show which electrodes are selected by providing a range in A1-H12 notation.")
         show_parser.add_argument('-cv', '--calibration_voltage', action = 'store_true', help = "Show the voltages on each of the electrodes during the most recent calibration.")
         show_parser.add_argument('-cp', '--calibration_ph', action = 'store_true', help = "Show the pH on each of the electrodes during the most recent calibration.")
         show_parser.add_argument('-p', '--ph', action = 'store_true', help = "Show the pH on each of the electrodes for the most recent measurement.")
         show_parser.add_argument('-v', '--voltage', action = 'store_true', help = "Show the voltages on each of the electrodes during the most recent measurement.")
         show_parser.set_defaults(func = self.show)
+
+        monitor_parser = self.subparsers.add_parser("monitor", prog = "monitor", exit_on_error = exit_on_error, description =
+    """Display sensor voltage readings in a continually updated fashion.""")
+        monitor_parser.add_argument('-e', '--electrodes', type = str, default = "all", help = "Only monitor selected electrodes. Default is all 96 electrodes.")
+        monitor_parser.add_argument('-f', '--file', action = 'store_true', help = f"Write continually updated voltage readings to the file specified in the JSON configuration file (currently {Config.voltage_display_filename}).")
+        monitor_parser.add_argument('-g', '--graph', action = 'store_true', help = "Display continually updated voltage readings in a new window in graphical form.")
+        monitor_parser.set_defaults(func = self.monitor)
 
         load_parser = self.subparsers.add_parser("load", prog = "load", exit_on_error = exit_on_error, description =
     """Re-load the csv file for calibration data from memory.""")
@@ -137,7 +146,8 @@ class Commands():
         else:
             voltages = self.sensor_interface.get_future_voltages_blocking(num_measurements)
         # voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
-        print(f"{voltages = }")
+        if Config.debug:
+            print(f"{voltages = }")
         voltages = self.combine_readings_element_wise(voltages)
 
         # set voltage reading of electrodes not being measured to None
@@ -243,6 +253,31 @@ class Commands():
             self.show_most_recent_measurement_ph()
 
     @unpack_namespace
+    def monitor(self, electrodes: str, file: bool, graph: bool):
+        """
+        Callback function for 'monitor' command.
+        """
+        self.sensor_display.electrodes = ElectrodeNames.parse_electrode_input(electrodes)
+        if file:
+            print(f"Displaying voltage readings in file {Config.voltage_display_filename}.")
+            self.sensor_display.start_file_display()
+        else:
+            if self.sensor_display.running_file_display:
+                print(f"Stopping file display. To start file display, use 'monitor -f'.")
+            else:
+                print(f"To start file display, use 'monitor -f'.")
+            self.sensor_display.stop_file_display()
+        if graph:
+            print(f"Displaying graphs in new window.")
+            self.sensor_display.start_graphical_display()
+        else:
+            if self.sensor_display.running_graphical_display:
+                print(f"Stopping graphical display. To start graphical display, use 'monitor -g'.")
+            else:
+                print(f"To start graphical display, use 'monitor -g'.")
+            self.sensor_display.stop_graphical_display()
+
+    @unpack_namespace
     def generate_conversion_info(self, measurement_id: str):
         """
         Callback function for 'conversion_info' command.
@@ -301,9 +336,11 @@ class Commands():
         #      n_measurements
         # ]
         readings_array = np.array(readings)
-        print(f"{readings_array = }")
+        if Config.debug:
+            print(f"{readings_array = }")
         averaged = average_func(readings_array, axis = 0) # column-wise
-        print(f"{averaged = }")
+        if Config.debug:
+            print(f"{averaged = }")
         return list(averaged)
 
     def get_voltages_blocking(self, n_measurements: int = 2, delay_between_measurements: float = 2, average_func: FloatCombiner = np.mean):

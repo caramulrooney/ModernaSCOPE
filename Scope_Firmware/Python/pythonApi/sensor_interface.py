@@ -5,26 +5,13 @@ from threading import Event, Timer
 from config import Config
 from electrode_names import ElectrodeNames
 import numpy as np
+import serial
+import json
 
 class MeasurementInterrupt(KeyboardInterrupt):
     """
     Exception for handling a keyboard interrupt during a measurement. The top-level program should handle a keyboard interrupt during this action and abort the measurement but continue running at the main prompt.
     """
-
-class IntervalTimer(Timer):
-    def __init__(self, *args, **kwargs):
-        """
-        Set daemon property to True during initialization.
-        """
-        super().__init__(*args, **kwargs)
-        self.daemon = True
-
-    def run(self):
-        """
-        Run indefinitely. Restart the timer as soon as it has elapased.
-        """
-        while not self.finished.wait(self.interval):
-            self.function(*self.args, **self.kwargs)
 
 class MeasurementRequest():
     def __init__(self, n_data_points: int, n_points_remaining: int):
@@ -40,11 +27,31 @@ class SensorInterface():
         self.cache = deque()
         self.measurements_pending: deque[MeasurementRequest] = deque()
 
-    def get_voltages_single(self) -> list[float]: # TODO: get data from sensor via pySerial
+    def get_voltages_single(self) -> list[float]:
         """
         Talk to the sensor and get a single voltage from each of the electrodes.
         """
-        return rand(N_ELECTRODES).tolist()
+        if Config.random_data:
+            return rand(N_ELECTRODES).tolist()
+        # else
+        n_tries = 5
+        for i in range(n_tries):
+            try:
+                with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
+                    ser.write(b'e') # send request for electrode data
+                    response = ser.readline().decode().strip() # read response
+                    if Config.debug:
+                        print(response)
+                    electrode_data = json.loads(response) # parse json data
+                    if Config.debug:
+                        print("Electrode voltages: ", electrode_data)
+                    return electrode_data
+            except (UnicodeDecodeError, serial.SerialException):
+                if Config.debug:
+                    print(f"Error connecting to serial port. Retrying up to {n_tries - i - 1} more times.")
+                pass
+        raise serial.SerialException("Error connecting to serial port. Please check the connection and retry, or change the COM port in the config.json file and then type 'load'.")
+
 
     def __store_voltages_in_cache(self):
         if len(self.cache) >= self.cache_size:
@@ -54,26 +61,28 @@ class SensorInterface():
 
     def update(self):
         self.__store_voltages_in_cache()
-        self.write_to_file()
-        print(f"Number of measurements pending: {len(self.measurements_pending)}")
+        if Config.debug:
+            print(f"Number of measurements pending: {len(self.measurements_pending)}")
         requests_to_delete = []
         for i, measurement_request in enumerate(self.measurements_pending):
+            measurement_request.n_points_remaining -= 1
             self.__check_if_promise_is_fulfilled(measurement_request)
             if measurement_request.has_been_read:
                 requests_to_delete.append(i)
         # delete the elements in a second step
         for i in requests_to_delete:
-            print(f"deleting measurement request {i}")
+            if Config.debug:
+                print(f"deleting measurement request {i}")
             del self.measurements_pending[i]
-
-
-        print(f"length of data deque: {len(self.cache)}")
+            if Config.debug:
+                print(f"length of data deque: {len(self.cache)}")
 
     def __check_if_promise_is_fulfilled(self, measurement_request):
-        print(f"checking promise. n_points_remaining = {measurement_request.n_points_remaining}")
-        measurement_request.n_points_remaining -= 1
+        if Config.debug:
+            print(f"checking promise. n_points_remaining = {measurement_request.n_points_remaining}")
         if measurement_request.n_points_remaining <= 0:
-            print("setting data")
+            if Config.debug:
+                print("setting data")
             measurement_request.ready.set()
 
     def __get_voltages_promise(self, n, future = True):
@@ -101,7 +110,8 @@ class SensorInterface():
             promise.has_been_read = True
             raise MeasurementInterrupt("Aborting measurement due to keyboard interrupt.")
         else:
-            print("promise is ready!")
+            if Config.debug:
+                print("promise is ready!")
             return_data = self.__get_cache(promise.n_data_points)
             promise.has_been_read = True # flag the request as completed so it can be deleted
             return return_data
@@ -111,12 +121,3 @@ class SensorInterface():
 
     def get_past_voltages_blocking(self, n: int) -> list[float]:
         return self.evaluate_promise_blocking(self.__get_voltages_promise(n, future = False))
-
-    def write_to_file(self):
-        if len(self.cache) <= 0:
-            if Config.debug:
-                print("Returning from write_to_file because cache length is zero.")
-            return
-        with open(Config.voltage_display_filename, "w") as display_file:
-            display_file.write(ElectrodeNames.electrode_ascii_art(self.cache[-1]))
-
