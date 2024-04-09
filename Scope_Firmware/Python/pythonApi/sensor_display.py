@@ -61,10 +61,13 @@ class GraphicalDisplay():
 
     def __init__(self, queue: multi.Queue):
         self.queue = queue
-        self.cache = deque()
+        self.cache = deque([{"ts": datetime.now(), "voltages": [0] * N_ELECTRODES}] * self.cache_size)
+        self.data_lines = [[0] * N_COLUMNS] * N_ROWS
+        print(self.data_lines)
         print("initializing GraphicalDisplay object")
 
     def run(self, electrodes = list(range(N_ELECTRODES))):
+        plt.ion()
         self.setup_plots()
         self.start_time = datetime.now()
         self.electrodes = electrodes
@@ -75,25 +78,32 @@ class GraphicalDisplay():
             self.__store_voltages_in_cache(new_data)
             self.display_graphs()
 
-    def __store_voltages_in_cache(self):
+    def __store_voltages_in_cache(self, new_voltages):
         if len(self.cache) >= self.cache_size:
             self.cache.popleft()
         # then, always:
         ts = datetime.now()
-        self.cache.append({"ts": ts, "voltages": self.get_voltages_single()})
+        self.cache.append({"ts": ts, "voltages": new_voltages})
 
     def display_graphs(self):
+        # plt.clf()
         voltages = [pair["voltages"] for pair in self.cache]
-        ts = [pair["ts"] for pair in self.cache]
+        now = datetime.now()
+        ts = [(now - pair["ts"]).total_seconds() for pair in self.cache]
 
-        ts += Config.measurement_interval
         for row in range(N_ROWS):
             for col in range(N_COLUMNS):
                 electrode_id = col + row * N_COLUMNS
                 if electrode_id not in self.electrodes:
                     continue
-                self.ax[row][col].plot(ts, [vs[electrode_id] for vs in voltages], color = "orange")
-        plt.show()
+                self.data_lines[row][col].set_ydata([vs[electrode_id] for vs in voltages])
+                self.data_lines[row][col].set_xdata(ts)
+                self.ax[row][col].relim()
+                self.ax[row][col].autoscale()
+                # self.fig.canvas.draw()
+                # self.ax[row][col].draw()
+        self.fig.canvas.draw_idle()
+        plt.pause(0.0001)
 
     def setup_plots(self, ignore_ticks = True):
         self.fig, self.ax = plt.subplots(N_ROWS, N_COLUMNS, figsize = (8, 12), sharex = True, sharey = True)
@@ -106,6 +116,9 @@ class GraphicalDisplay():
                     self.ax[row][col].set_xlabel(col + 1)
                 if col == 0:
                     self.ax[row][col].set_ylabel(ROW_LETTERS[row] + " " * 5, rotation = 0)
+
+                lines = self.ax[row][col].plot([0] * self.cache_size, [0] * self.cache_size, color = "orange")
+                self.data_lines[row][col] = lines[0]
 
                 if row == N_ROWS - 1 and col == 0:
                     continue
@@ -125,4 +138,9 @@ class GraphicalDisplay():
                         right=False,         # ticks along the top edge are off
                         labelleft=False
                     ) # labels along the bottom edge are off
+
+        # self.fig.canvas.draw_idle()
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        # plt.show()
 
