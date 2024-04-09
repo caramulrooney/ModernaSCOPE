@@ -61,9 +61,8 @@ class GraphicalDisplay():
 
     def __init__(self, queue: multi.Queue):
         self.queue = queue
-        self.cache = deque([{"ts": datetime.now(), "voltages": [0] * N_ELECTRODES}] * self.cache_size)
-        self.data_lines = [[0] * N_COLUMNS] * N_ROWS
-        print(self.data_lines)
+        self.cache = deque([{"ts": datetime.now(), "voltages": [0 for electrode_id in range(N_ELECTRODES)]} for element in range(self.cache_size)])
+        self.data_lines = [[None for col in range(N_COLUMNS)] for row in range(N_ROWS)]
         print("initializing GraphicalDisplay object")
 
     def run(self, electrodes = list(range(N_ELECTRODES))):
@@ -118,7 +117,10 @@ class GraphicalDisplay():
                     self.ax[row][col].set_ylabel(ROW_LETTERS[row] + " " * 5, rotation = 0)
 
                 lines = self.ax[row][col].plot([0] * self.cache_size, [0] * self.cache_size, color = "orange")
+                print(row, col)
+                print(lines)
                 self.data_lines[row][col] = lines[0]
+                print(self.data_lines)
 
                 if row == N_ROWS - 1 and col == 0:
                     continue
