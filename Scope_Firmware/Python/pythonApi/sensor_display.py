@@ -2,26 +2,35 @@ from electrode_names import ElectrodeNames
 from config import Config
 from sensor_interface import SensorInterface
 import matplotlib.pyplot as plt
-from constants import N_ELECTRODES
+from constants import N_ELECTRODES, N_ROWS, N_COLUMNS, ROW_LETTERS
 from threading import Thread
+import multiprocessing as multi
+from collections import deque
+from datetime import datetime
 
 class SensorDisplay():
-    nrows = 8
-    ncols = 12
-    n_electrodes = nrows * ncols
-    row_letters = "ABCDEFGH"
-    ts = 0
-    electrodes = list(range(N_ELECTRODES))
     running_graphical_display = False
     running_file_display = False
 
     def __init__(self, sensor_interface: SensorInterface):
         self.sensor_interface = sensor_interface
+        self.graphical_data_queue = multi.Queue()
 
     def start_graphical_display(self):
+        # don't start a duplicate thread instance
+        if self.running_graphical_display:
+            print(f"Graphical display is already running.")
+            return
+        self.running_graphical_display = True
+        multi.Process(target = self.process_run_graphical_display, daemon = True).start()
         Thread(target = self.run_graphical_display, daemon = True).start()
 
     def start_file_display(self):
+        # don't start a duplicate thread instance
+        if self.running_file_display:
+            print(f"File display is already running. See output in file {Config.voltage_display_filename}")
+            return
+        self.running_file_display = True
         Thread(target = self.run_files, daemon = True).start()
 
     def stop_graphical_display(self):
@@ -30,53 +39,75 @@ class SensorDisplay():
     def stop_file_display(self):
         self.running_file_display = False
 
+    def process_run_graphical_display(self):
+        graphical_display = GraphicalDisplay(self.graphical_data_queue)
+        graphical_display.run()
+
     def run_graphical_display(self):
-        # don't start a duplicate thread instance
-        if self.running_graphical_display:
-            return
-        self.setup_plots()
-        self.running_graphical_display = True
+        # multi.Process(target = graphical_display.run, args = (self.graphical_data_queue,), daemon = True).start()
         while self.running_graphical_display:
-            self.display_graphs()
+            voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
+            print("Graphical display thread")
+            self.graphical_data_queue.put(voltages)
 
     def run_files(self):
-        # don't start a duplicate thread instance
-        if self.running_file_display:
-            print(f"File display is already running. See output in file {Config.voltage_display_filename}")
-            return
-        self.running_file_display = True
         while self.running_file_display:
-            self.write_to_file()
+            voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
+            with open(Config.voltage_display_filename, "w") as display_file:
+                display_file.write(ElectrodeNames.electrode_ascii_art(voltages))
 
-    def write_to_file(self):
-        voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
-        with open(Config.voltage_display_filename, "w") as display_file:
-            display_file.write(ElectrodeNames.electrode_ascii_art(voltages))
+class GraphicalDisplay():
+    cache_size = 20
+
+    def __init__(self, queue: multi.Queue):
+        self.queue = queue
+        self.cache = deque()
+        print("initializing GraphicalDisplay object")
+
+    def run(self, electrodes = list(range(N_ELECTRODES))):
+        self.setup_plots()
+        self.start_time = datetime.now()
+        self.electrodes = electrodes
+        print("running GraphicalDisplay object")
+        while True:
+            new_data = self.queue.get() # blocking line
+            print("GraphicalDisplay received a message!")
+            self.__store_voltages_in_cache(new_data)
+            self.display_graphs()
+
+    def __store_voltages_in_cache(self):
+        if len(self.cache) >= self.cache_size:
+            self.cache.popleft()
+        # then, always:
+        ts = datetime.now()
+        self.cache.append({"ts": ts, "voltages": self.get_voltages_single()})
 
     def display_graphs(self):
-        voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
-        self.ts += Config.measurement_interval
-        for row in range(self.nrows):
-            for col in range(self.ncols):
-                electrode_id = col + row * self.ncols
+        voltages = [pair["voltages"] for pair in self.cache]
+        ts = [pair["ts"] for pair in self.cache]
+
+        ts += Config.measurement_interval
+        for row in range(N_ROWS):
+            for col in range(N_COLUMNS):
+                electrode_id = col + row * N_COLUMNS
                 if electrode_id not in self.electrodes:
                     continue
-                self.ax[row][col].plot(self.ts, [vs[electrode_id] for vs in voltages], color = "orange")
-        self.fig.canvas.draw_idle()
+                self.ax[row][col].plot(ts, [vs[electrode_id] for vs in voltages], color = "orange")
+        plt.show()
 
     def setup_plots(self, ignore_ticks = True):
-        self.fig, self.ax = plt.subplots(self.nrows, self.ncols, figsize = (8, 12), sharex = True, sharey = True)
+        self.fig, self.ax = plt.subplots(N_ROWS, N_COLUMNS, figsize = (8, 12), sharex = True, sharey = True)
         self.fig.suptitle("Electrode voltages over time for all 96 electrodes.")
         self.fig.supxlabel("Time (s)")
         self.fig.supylabel("Voltage (V), scaled to the largest voltage in the array")
-        for row in range(self.nrows):
-            for col in range(self.ncols):
-                if row == self.nrows - 1:
+        for row in range(N_ROWS):
+            for col in range(N_COLUMNS):
+                if row == N_ROWS - 1:
                     self.ax[row][col].set_xlabel(col + 1)
                 if col == 0:
-                    self.ax[row][col].set_ylabel(self.row_letters[row] + " " * 5, rotation = 0)
+                    self.ax[row][col].set_ylabel(ROW_LETTERS[row] + " " * 5, rotation = 0)
 
-                if row == self.nrows - 1 and col == 0:
+                if row == N_ROWS - 1 and col == 0:
                     continue
 
                 if ignore_ticks:
