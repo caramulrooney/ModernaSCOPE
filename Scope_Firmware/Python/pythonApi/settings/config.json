@@ -1,6 +1,6 @@
 {
   "serial_port": "COM4",
-  "measurement_interval": 5,
+  "measurement_interval": 1,
   "voltage_display_filename": "display/voltage_display.txt",
   "calibration_data_filename": "sensor_data/calibration_data.csv",
   "measurement_data_filename": "sensor_data/measurement_data.csv",
