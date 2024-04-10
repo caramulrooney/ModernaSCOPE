@@ -26,8 +26,16 @@ class SensorDisplay():
             print(f"Graphical display is already running.")
             return
         self.running_graphical_display = True
-        multi.Process(target = self.process_run_graphical_display, daemon = True).start()
-        Thread(target = self.run_graphical_display, daemon = True).start()
+        self.graphical_data_queue = multi.Queue()
+        graphical_display_process = multi.Process(target = self.process_run_graphical_display, daemon = True)
+        graphical_display_process.start()
+        graphical_display_update_thread = Thread(target = self.run_graphical_display, daemon = True)
+        graphical_display_update_thread.start()
+        graphical_display_process.join()
+        print("Joined gps")
+        self.running_graphical_display = False
+        graphical_display_update_thread.join()
+        print("Joined update thread")
 
     def start_file_display(self):
         # don't start a duplicate thread instance
@@ -80,6 +88,7 @@ class GraphicalDisplay():
 
     def run(self, electrodes = list(range(N_ELECTRODES))):
         self.setup_plots()
+        self.fig.canvas.mpl_connect('close_event', exit)
         self.start_time = datetime.now()
         self.electrodes = electrodes
         Thread(target = self.run_update_deque, daemon = True).start()
@@ -107,11 +116,9 @@ class GraphicalDisplay():
                 self.data_lines[row][col].set_xdata(ts)
                 self.ax[row][col].relim()
                 self.ax[row][col].autoscale()
-        # self.fig.canvas.draw_idle()
-        # plt.pause(0.5)
 
     def setup_plots(self, ignore_ticks = True):
-        matplotlib.use('Qt5agg')
+        # matplotlib.use('Qt5agg')
         self.fig, self.ax = plt.subplots(N_ROWS, N_COLUMNS, figsize = (8, 12), sharex = True, sharey = True)
         self.fig.suptitle("Electrode voltages over time for all 96 electrodes.")
         self.fig.supxlabel("Time (s)")
