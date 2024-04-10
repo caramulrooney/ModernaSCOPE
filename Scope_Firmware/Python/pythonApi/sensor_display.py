@@ -26,16 +26,22 @@ class SensorDisplay():
             print(f"Graphical display is already running.")
             return
         self.running_graphical_display = True
-        self.graphical_data_queue = multi.Queue()
-        graphical_display_process = multi.Process(target = self.process_run_graphical_display, daemon = True)
-        graphical_display_process.start()
-        graphical_display_update_thread = Thread(target = self.run_graphical_display, daemon = True)
-        graphical_display_update_thread.start()
-        graphical_display_process.join()
-        print("Joined gps")
+
+        # start new process to display matplotlib animation; start new thread with data pipeline
+        graphical_data_queue = multi.Queue()
+        process = multi.Process(target = self.run_graphical_display_process, args = (graphical_data_queue, ), daemon = True)
+        process.start()
+        update_thread = Thread(target = self.run_graphical_display_update_thread, args = (graphical_data_queue, ), daemon = True)
+        update_thread.start()
+
+        # wait until the process exits, usually due to someone closing the display window
+        process.join()
+        if Config.debug:
+            print("Joined graphical display process.")
         self.running_graphical_display = False
-        graphical_display_update_thread.join()
-        print("Joined update thread")
+        update_thread.join()
+        if Config.debug:
+            print("Joined graphical display thread.")
 
     def start_file_display(self):
         # don't start a duplicate thread instance
@@ -43,7 +49,7 @@ class SensorDisplay():
             print(f"File display is already running. See output in file {Config.voltage_display_filename}")
             return
         self.running_file_display = True
-        Thread(target = self.run_files, daemon = True).start()
+        Thread(target = self.run_file_display, daemon = True).start()
 
     def stop_graphical_display(self):
         self.running_graphical_display = False
@@ -51,19 +57,19 @@ class SensorDisplay():
     def stop_file_display(self):
         self.running_file_display = False
 
-    def process_run_graphical_display(self):
-        graphical_display = GraphicalDisplay(self.graphical_data_queue)
+    def run_graphical_display_process(self, graphical_data_queue):
+        graphical_display = GraphicalDisplay(graphical_data_queue)
         graphical_display.run()
 
-    def run_graphical_display(self):
+    def run_graphical_display_update_thread(self, graphical_data_queue):
         # multi.Process(target = graphical_display.run, args = (self.graphical_data_queue,), daemon = True).start()
         while self.running_graphical_display:
             voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
             if Config.debug:
                 print("Graphical display thread")
-            self.graphical_data_queue.put(voltages)
+            graphical_data_queue.put(voltages)
 
-    def run_files(self):
+    def run_file_display(self):
         while self.running_file_display:
             voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
             with open(Config.voltage_display_filename, "w") as display_file:
@@ -151,31 +157,3 @@ class GraphicalDisplay():
                         right=False,         # ticks along the top edge are off
                         labelleft=False
                     ) # labels along the bottom edge are off
-
-        # self.fig.canvas.draw()
-        # self.fig.canvas.flush_events()
-
-    # def setup_tkinter(self):
-    #     window = Tk() # The main tkinter window
-    #     window.title('Plotting in Tkinter') # setting the title and
-    #     window.geometry("500x500") # setting the dimensions of the main window
-
-    #     # button that would displays the plot
-    #     plot_button = Button(master = window,
-    #                         height = 2,
-    #                         width = 10,
-    #                         text = "Plot")
-    #     # place the button
-    #     # into the window
-    #     plot_button.pack()
-
-    #     # creating the Tkinter canvas
-    #     # containing the Matplotlib figure
-    #     canvas = FigureCanvasTkAgg(self.fig,
-    #                             master = window)
-    #     canvas.draw()
-
-    #     # placing the canvas on the Tkinter window
-    #     canvas.get_tk_widget().pack()
-    #     # run the gui
-    #     window.mainloop()
