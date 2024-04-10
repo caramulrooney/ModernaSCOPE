@@ -2,11 +2,15 @@ from electrode_names import ElectrodeNames
 from config import Config
 from sensor_interface import SensorInterface
 import matplotlib.pyplot as plt
-from constants import N_ELECTRODES, N_ROWS, N_COLUMNS, ROW_LETTERS
+from constants import N_ELECTRODES, N_ROWS, N_COLUMNS, ROW_LETTERS, SECONDS_TO_MILLISECONDS
 from threading import Thread
 import multiprocessing as multi
 from collections import deque
 from datetime import datetime
+from tkinter import Tk, Button
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib
+import matplotlib.animation as animation
 
 class SensorDisplay():
     running_graphical_display = False
@@ -67,17 +71,20 @@ class GraphicalDisplay():
         if Config.debug:
             print("initializing GraphicalDisplay object")
 
-    def run(self, electrodes = list(range(N_ELECTRODES))):
-        plt.ion()
-        self.setup_plots()
-        self.start_time = datetime.now()
-        self.electrodes = electrodes
+    def run_update_deque(self):
         while True:
             new_data = self.queue.get() # blocking line
             if Config.debug:
                 print("GraphicalDisplay received a message!")
             self.__store_voltages_in_cache(new_data)
-            self.display_graphs()
+
+    def run(self, electrodes = list(range(N_ELECTRODES))):
+        self.setup_plots()
+        self.start_time = datetime.now()
+        self.electrodes = electrodes
+        Thread(target = self.run_update_deque, daemon = True).start()
+        ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = Config.measurement_interval * SECONDS_TO_MILLISECONDS / 2)
+        plt.show()
 
     def __store_voltages_in_cache(self, new_voltages):
         if len(self.cache) >= self.cache_size:
@@ -86,10 +93,10 @@ class GraphicalDisplay():
         ts = datetime.now()
         self.cache.append({"ts": ts, "voltages": new_voltages})
 
-    def display_graphs(self):
+    def display_graphs(self, frame):
         voltages = [pair["voltages"] for pair in self.cache]
         now = datetime.now()
-        ts = [(now - pair["ts"]).total_seconds() for pair in self.cache]
+        ts = [(pair["ts"] - now).total_seconds() for pair in self.cache]
 
         for row in range(N_ROWS):
             for col in range(N_COLUMNS):
@@ -100,10 +107,11 @@ class GraphicalDisplay():
                 self.data_lines[row][col].set_xdata(ts)
                 self.ax[row][col].relim()
                 self.ax[row][col].autoscale()
-        self.fig.canvas.draw_idle()
-        plt.pause(0.5)
+        # self.fig.canvas.draw_idle()
+        # plt.pause(0.5)
 
     def setup_plots(self, ignore_ticks = True):
+        matplotlib.use('Qt5agg')
         self.fig, self.ax = plt.subplots(N_ROWS, N_COLUMNS, figsize = (8, 12), sharex = True, sharey = True)
         self.fig.suptitle("Electrode voltages over time for all 96 electrodes.")
         self.fig.supxlabel("Time (s)")
@@ -137,6 +145,30 @@ class GraphicalDisplay():
                         labelleft=False
                     ) # labels along the bottom edge are off
 
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
+        # self.fig.canvas.draw()
+        # self.fig.canvas.flush_events()
 
+    # def setup_tkinter(self):
+    #     window = Tk() # The main tkinter window
+    #     window.title('Plotting in Tkinter') # setting the title and
+    #     window.geometry("500x500") # setting the dimensions of the main window
+
+    #     # button that would displays the plot
+    #     plot_button = Button(master = window,
+    #                         height = 2,
+    #                         width = 10,
+    #                         text = "Plot")
+    #     # place the button
+    #     # into the window
+    #     plot_button.pack()
+
+    #     # creating the Tkinter canvas
+    #     # containing the Matplotlib figure
+    #     canvas = FigureCanvasTkAgg(self.fig,
+    #                             master = window)
+    #     canvas.draw()
+
+    #     # placing the canvas on the Tkinter window
+    #     canvas.get_tk_widget().pack()
+    #     # run the gui
+    #     window.mainloop()
