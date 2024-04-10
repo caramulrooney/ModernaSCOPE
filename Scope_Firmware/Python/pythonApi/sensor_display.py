@@ -19,6 +19,7 @@ class SensorDisplay():
     def __init__(self, sensor_interface: SensorInterface):
         self.sensor_interface = sensor_interface
         self.graphical_data_queue = multi.Queue()
+        self.electrodes = list(range(N_ELECTRODES))
 
     def start_graphical_display(self):
         # don't start a duplicate thread instance
@@ -26,7 +27,23 @@ class SensorDisplay():
             print(f"Graphical display is already running.")
             return
         self.running_graphical_display = True
+        Thread(target = self.run_graphical_display, daemon = True).start()
 
+    def start_file_display(self):
+        # don't start a duplicate thread instance
+        if self.running_file_display:
+            print(f"File display is already running. See output in file {Config.voltage_display_filename}")
+            return
+        self.running_file_display = True
+        Thread(target = self.run_file_display, daemon = True).start()
+
+    def stop_graphical_display(self):
+        self.running_graphical_display = False
+
+    def stop_file_display(self):
+        self.running_file_display = False
+
+    def run_graphical_display(self):
         # start new process to display matplotlib animation; start new thread with data pipeline
         graphical_data_queue = multi.Queue()
         process = multi.Process(target = self.run_graphical_display_process, args = (graphical_data_queue, ), daemon = True)
@@ -43,22 +60,8 @@ class SensorDisplay():
         if Config.debug:
             print("Joined graphical display thread.")
 
-    def start_file_display(self):
-        # don't start a duplicate thread instance
-        if self.running_file_display:
-            print(f"File display is already running. See output in file {Config.voltage_display_filename}")
-            return
-        self.running_file_display = True
-        Thread(target = self.run_file_display, daemon = True).start()
-
-    def stop_graphical_display(self):
-        self.running_graphical_display = False
-
-    def stop_file_display(self):
-        self.running_file_display = False
-
     def run_graphical_display_process(self, graphical_data_queue):
-        graphical_display = GraphicalDisplay(graphical_data_queue)
+        graphical_display = GraphicalDisplay(graphical_data_queue, electrodes = self.electrodes)
         graphical_display.run()
 
     def run_graphical_display_update_thread(self, graphical_data_queue):
@@ -78,8 +81,9 @@ class SensorDisplay():
 class GraphicalDisplay():
     cache_size = 20
 
-    def __init__(self, queue: multi.Queue):
+    def __init__(self, queue: multi.Queue, electrodes = list(range(N_ELECTRODES))):
         self.queue = queue
+        self.electrodes = electrodes
         self.cache = deque([{"ts": datetime.now(), "voltages": [0 for electrode_id in range(N_ELECTRODES)]} for element in range(self.cache_size)])
         self.data_lines = [[None for col in range(N_COLUMNS)] for row in range(N_ROWS)]
         if Config.debug:
@@ -92,11 +96,10 @@ class GraphicalDisplay():
                 print("GraphicalDisplay received a message!")
             self.__store_voltages_in_cache(new_data)
 
-    def run(self, electrodes = list(range(N_ELECTRODES))):
+    def run(self):
         self.setup_plots()
         self.fig.canvas.mpl_connect('close_event', exit)
         self.start_time = datetime.now()
-        self.electrodes = electrodes
         Thread(target = self.run_update_deque, daemon = True).start()
         ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = Config.measurement_interval * SECONDS_TO_MILLISECONDS / 2)
         plt.show()

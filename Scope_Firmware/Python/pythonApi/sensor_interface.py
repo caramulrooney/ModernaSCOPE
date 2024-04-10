@@ -70,10 +70,10 @@ class SensorInterface():
             if measurement_request.has_been_read:
                 requests_to_delete.append(i)
         # delete the elements in a second step
-        for i in requests_to_delete:
+        for n_deleted_already, i in enumerate(requests_to_delete):
             if Config.debug:
-                print(f"deleting measurement request {i}")
-            del self.measurements_pending[i]
+                print(f"deleting measurement request {i}, offset by position {n_deleted_already}.")
+            del self.measurements_pending[i - n_deleted_already]
             if Config.debug:
                 print(f"length of data deque: {len(self.cache)}")
 
