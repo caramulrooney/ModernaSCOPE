@@ -94,7 +94,7 @@ class Commands():
 
         monitor_parser = self.subparsers.add_parser("monitor", prog = "monitor", exit_on_error = exit_on_error, description =
     """Display sensor voltage readings in a continually updated fashion.""")
-        monitor_parser.add_argument('-e', '--electrodes', type = str, default = "all", help = "Only monitor selected electrodes. Default is all 96 electrodes.")
+        monitor_parser.add_argument('-e', '--electrodes', type = str, default = ALL_ELECTRODES_KEYWORD, help = "Only monitor selected electrodes. Default is all 96 electrodes.")
         monitor_parser.add_argument('-f', '--file', action = 'store_true', help = f"Write continually updated voltage readings to the file specified in the JSON configuration file (currently {Config.voltage_display_filename}).")
         monitor_parser.add_argument('-g', '--graph', action = 'store_true', help = "Display continually updated voltage readings in a new window in graphical form.")
         monitor_parser.set_defaults(func = self.monitor)

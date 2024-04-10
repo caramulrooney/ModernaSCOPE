@@ -76,7 +76,13 @@ class SensorDisplay():
         while self.running_file_display:
             voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
             with open(Config.voltage_display_filename, "w") as display_file:
-                display_file.write(ElectrodeNames.electrode_ascii_art(voltages))
+                voltages_to_display = []
+                for electrode_id in range(N_ELECTRODES):
+                    if electrode_id in self.electrodes:
+                        voltages_to_display.append(voltages[electrode_id])
+                    else:
+                        voltages_to_display.append(None)
+                display_file.write(ElectrodeNames.electrode_ascii_art(voltages_to_display))
 
 class GraphicalDisplay():
     cache_size = 20
