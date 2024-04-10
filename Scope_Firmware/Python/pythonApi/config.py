@@ -9,6 +9,9 @@ class Config():
 
     If necessary, use make_directories() to initialize the folder structure so the data files can be created at runtime.
     """
+    serial_port = "COM4"
+    measurement_interval = 1 # second
+    voltage_display_filename = "display/voltage_display.txt"
     calibration_data_filename = "sensor_data/calibration_data.csv"
     measurement_data_filename = "sensor_data/measurement_data.csv"
     ph_result_filename = "sensor_data/ph_result.csv"
@@ -16,6 +19,7 @@ class Config():
     prompt_history_filename = "settings/prompt_history.txt"
     timezone = "US/Eastern"
     debug = False
+    random_data = True
 
     @classmethod
     def set_config(cls, config_filename: str, mkdirs: bool) -> bool:
@@ -43,6 +47,12 @@ class Config():
             return False
 
         data = json.load(f)
+        if "serial_port" in data.keys():
+            cls.serial_port = data["serial_port"]
+        if "measurement_interval" in data.keys():
+            cls.measurement_interval = float(data["measurement_interval"])
+        if "voltage_display_filename" in data.keys():
+            cls.voltage_display_filename = data["voltage_display_filename"]
         if "calibration_data_filename" in data.keys():
             cls.calibration_data_filename = data["calibration_data_filename"]
         if "measurement_data_filename" in data.keys():
@@ -57,6 +67,8 @@ class Config():
             cls.timezone = data["timezone"]
         if "debug" in data.keys():
             cls.debug = data["debug"]
+        if "random_data" in data.keys():
+            cls.random_data = data["random_data"]
 
         if mkdirs:
             cls.make_directories()
@@ -68,5 +80,5 @@ class Config():
         Initialize the folder structure required by the file paths so the files can be created at runtime.
         """
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
-        for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename]:
+        for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename, cls.voltage_display_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)
