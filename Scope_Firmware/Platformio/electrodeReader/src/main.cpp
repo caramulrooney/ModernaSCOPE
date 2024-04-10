@@ -10,6 +10,7 @@
 #define NUM_ELECTRODES 96
 #define nSelectPins 7
 float voltages[NUM_ELECTRODES];
+unsigned int electrode_to_measure = 4;
 #define ads1110 0x49  // Define the I2C address for the ADS1110
 
 void setup_ads1110();
@@ -48,6 +49,7 @@ typedef struct {
 
 // Declare variables for high byte, low byte, and configuration register
 byte highbyte, lowbyte, configRegister;
+int byte_to_int(byte);
 
 void setup() {
     Serial.begin(115200);
@@ -68,6 +70,12 @@ void setup() {
     pinMode(selectPins[6], OUTPUT);
 
     setup_ads1110();
+
+    Serial.println("");
+    Serial.println("Hello World!");
+    Serial.println("");
+    Serial.println(byte_to_int(0b11000000));
+    Serial.println(byte_to_int(0b00000011));
 }
 
 void loop() {
@@ -79,10 +87,14 @@ void loop() {
             // return;
 
             // read voltages from electrodes
-            for (int i = 0; i < NUM_ELECTRODES; i++) {
+            for (unsigned int i = 0; i < NUM_ELECTRODES; i++) {
+                if (i != electrode_to_measure) {
+                    voltages[i] = 0;
+                    continue;
+                }
                 bool status = false;
                 voltages[i] = calculateVoltage(i, &status);
-                delay(5);
+                delay(25);
             }
 
             // format data in JSON
@@ -98,6 +110,15 @@ void loop() {
         }
     }
     delay(10);
+}
+
+int byte_to_int(byte byte_) {
+    int result = 0;
+    for (int i = 0; i < 8; i++) {
+        bool big_endian_bit = (byte_ & (1 << i)) >> i;
+        result = result + (big_endian_bit << (8 - i - 1));
+    }
+    return result;
 }
 
 float calculateVoltage(int electrode, bool* status) {
@@ -132,16 +153,22 @@ float calculateVoltage(int electrode, bool* status) {
     bool sc_register = configRegister & 0b00010000;
     Serial.println("sc_register is " + String(sc_register ? "Single Conversion Mode" : "Continuous Conversion Mode"));
 #endif
+    float max_voltage = 2.048;  // V
+    int max_adc_value = 2047;
+    short adc_value = (short)((highbyte << 8) + lowbyte);
+    // int adc_value = (byte_to_int(highbyte) << 8) + byte_to_int(lowbyte);
+    // int adc_value = (byte_to_int(lowbyte) << 8) + byte_to_int(highbyte);
+    float voltage = max_voltage * adc_value / max_adc_value;
 
-    // Combine the high and low bytes to get the raw data
-    float data;
-    data = highbyte * 256;
-    data = data + lowbyte;
+    // // Combine the high and low bytes to get the raw data
+    // float data;
+    // data = highbyte * 256;
+    // data = data + lowbyte;
 
-    // Convert the raw data to voltage (assuming 2.048V reference and 15-bit resolution)
-    float voltage;
-    voltage = data * 2.04;
-    voltage = voltage / 32768.0;
+    // // Convert the raw data to voltage (assuming 2.048V reference and 15-bit resolution)
+    // float voltage;
+    // voltage = data * 2.04;
+    // voltage = voltage / 32768.0;
 
     return voltage;
 }
@@ -174,7 +201,7 @@ void setup_ads1110() {
     myConfig.DR_1 = 0;    // 240 samples per second
     myConfig.DR_0 = 0;
     myConfig.PGA_1 = 0;  // Gain of 1
-    myConfig.PGA_0 = 1;
+    myConfig.PGA_0 = 0;
 
     configRegister =
         (myConfig.ST_DRDY << 7) +         // Bit 7: ST_DRDY

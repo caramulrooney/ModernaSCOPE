@@ -34,7 +34,7 @@ class SensorInterface():
         if Config.random_data:
             return rand(N_ELECTRODES).tolist()
         # else
-        n_tries = 5
+        n_tries = 25
         for i in range(n_tries):
             try:
                 with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
@@ -47,8 +47,8 @@ class SensorInterface():
                         print("Electrode voltages: ", electrode_data)
                     return electrode_data
             except (UnicodeDecodeError, serial.SerialException):
-                if Config.debug:
-                    print(f"Error connecting to serial port. Retrying up to {n_tries - i - 1} more times.")
+                # if Config.debug:
+                print(f"Error connecting to serial port. Retrying up to {n_tries - i - 1} more times.")
                 pass
         raise serial.SerialException("Error connecting to serial port. Please check the connection and retry, or change the COM port in the config.json file and then type 'load'.")
 

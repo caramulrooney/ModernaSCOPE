@@ -1,6 +1,6 @@
 {
   "serial_port": "COM4",
-  "measurement_interval": 1,
+  "measurement_interval": 2,
   "voltage_display_filename": "display/voltage_display.txt",
   "calibration_data_filename": "sensor_data/calibration_data.csv",
   "measurement_data_filename": "sensor_data/measurement_data.csv",
@@ -9,5 +9,5 @@
   "prompt_history_filename": "settings/prompt_history.txt",
   "timezone": "US/Eastern",
   "debug": false,
-  "random_data": true
+  "random_data": false
 }
