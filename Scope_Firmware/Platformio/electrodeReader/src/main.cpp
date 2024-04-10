@@ -88,13 +88,13 @@ void loop() {
 
             // read voltages from electrodes
             for (unsigned int i = 0; i < NUM_ELECTRODES; i++) {
-                if (i != electrode_to_measure) {
-                    voltages[i] = 0;
-                    continue;
-                }
+                // if (i != electrode_to_measure) {
+                //     voltages[i] = 0;
+                //     continue;
+                // }
                 bool status = false;
                 voltages[i] = calculateVoltage(i, &status);
-                delay(25);
+                delay(6);
             }
 
             // format data in JSON

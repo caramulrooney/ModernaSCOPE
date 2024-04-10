@@ -34,7 +34,7 @@ class SensorInterface():
         if Config.random_data:
             return rand(N_ELECTRODES).tolist()
         # else
-        n_tries = 25
+        n_tries = 5
         for i in range(n_tries):
             try:
                 with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
