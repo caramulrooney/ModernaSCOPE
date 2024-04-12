@@ -1,10 +1,41 @@
 # Sensor Python API
 
-## To run:
+## To upload the firmware to the board
 
-1. Open a command terminal, and navigate to the directory containig this file.
-2. Type `python3 main.py` or `python main.py`. This will run the main python
-   script in your terminal.
+1. Open VS Code, make sure Platformio is installed, and open the Platformio
+   sidebar. From the Platformio sidebar, click "Open Project".
+
+2. In the file explorer, nagivate to the folder
+   `ModernaSCOPE/Scope_Firmware/Platformio/electrodeReader`. When opening a
+   Platformio folder, you should always open a directory containing a
+   `platformio.ini` file and a `src` subdirectory. The actual code will live in
+   the `src` directory, but you need to open that parent folder. Once the
+   correct folder is open in VS Code, open up the `src/main.cpp` file and make
+   edits as necessary. This might be needed when switching between code for the
+   ESP8266 and the Teensy 4.1.
+
+3. Once VSCode has opened the `electordeReader` folder, and along the bottome
+   bar, you will notice a little check symbol next to an arrow symbol. The check
+   mark is for compile; the arrow symbol is for compile and upload (just like
+   the Arduino IDE). Upload the code to the board. If there is a serial
+   connection error, make sure no other programs are using the serial port, such
+   as the serial monitor.
+
+4. The `electrodeReader` code will wait until a character is sent over Serial.
+   When it receives an `e` character, it will respond with a list of the
+   voltages at each of the electrodes. That is its only task. All averaging,
+   calibration, and data storage occurs on the python interface side. You can
+   test the `electrodeReader` code by opening up a serial monitor (either from
+   VS Code or the Arduino IDE) and entering the letter `e` and pressing send.
+   You should see a list of numbers separated by commas printed to the serial
+   monitor.
+
+## To run the Multiplex pH Sensor API:
+
+1. Open a command terminal, and navigate to the
+   `ModernaSCOPE/Scope_Firmware/Python/pythonApi` folder.
+2. In the command terminal, type `python3 main.py` or `python main.py`. This
+   will run the main python script in your terminal.
 3. If any "cannot find package" errors arise, you must install the proper python
    packages. Very soon, I'm planning on implementing a `requirements.txt` file
    which will allow you to install all the packages at once.
