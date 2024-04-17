@@ -71,11 +71,13 @@ void setup() {
 
     setup_ads1110();
 
-    Serial.println("");
-    Serial.println("Hello World!");
-    Serial.println("");
-    Serial.println(byte_to_int(0b11000000));
-    Serial.println(byte_to_int(0b00000011));
+#ifdef DEBUG
+// Serial.println("");
+// Serial.println("Hello World!");
+// Serial.println("");
+// Serial.println(byte_to_int(0b11000000));
+// Serial.println(byte_to_int(0b00000011));
+#endif
 }
 
 void loop() {
