@@ -6,7 +6,7 @@ class Config():
     """
     Configuration information that may need to be changed by the user, such as file paths to measurement and calibration data. Properties defined in this class are distinct from those defined in constants.py in that they might need to change from one session to the next. All properties and methods belong to the class and can be accessed without instantiation.
 
-    Load the config parameters from a json file with set_config().
+    Load the config parameters and debug message options from a json file with set_config().
 
     If necessary, use make_directories() to initialize the folder structure so the data files can be created at runtime.
     """
@@ -39,8 +39,6 @@ class Config():
         `prompt_history_filename`: File in which to store the command line session history, so that previous commands can be accessed with the up arrow even if the terminal is closed and then re-opened.
 
         `timezone`: Time zone in which to store calibration and measurement records.
-
-        `debug`: If true, display a small number of additional error messages for diagnostic purposes.
         """
 
         # initialize parameters with defaults

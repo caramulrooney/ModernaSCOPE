@@ -135,10 +135,10 @@ class Commands():
         """
         Callback function for 'measure' command.
         """
-        if Config.debug:
+        if Config.debug.cli.received_command.measure:
             print(f"Inside of measure, {electrodes=}, {num_measurements=}, {past_data=}, {show=}, {voltage=}")
         electrode_ids_being_measured = ElectrodeNames.parse_electrode_input(electrodes)
-        if Config.debug:
+        if Config.debug.cli.received_command.measure:
             print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
 
         if past_data:
@@ -146,7 +146,7 @@ class Commands():
         else:
             voltages = self.sensor_interface.get_future_voltages_blocking(num_measurements)
         # voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
-        if Config.debug:
+        if Config.debug.cli:
             print(f"{voltages = }")
         voltages = self.combine_readings_element_wise(voltages)
 
@@ -169,10 +169,10 @@ class Commands():
         """
         Callback function for 'calibrate' command.
         """
-        if Config.debug:
+        if Config.debug.cli.received_command.calibrate:
             print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {past_data=}, {show=}, {voltage=}")
         electrode_ids_being_calibrated = ElectrodeNames.parse_electrode_input(electrodes)
-        if Config.debug:
+        if Config.debug.cli.received_command.calibrate:
             print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
 
         if past_data:
