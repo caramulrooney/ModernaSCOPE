@@ -8,6 +8,5 @@
   "calibration_map_filename": "sensor_data/calibration_map.csv",
   "prompt_history_filename": "settings/prompt_history.txt",
   "timezone": "US/Eastern",
-  "debug": false,
   "random_data": true
 }
