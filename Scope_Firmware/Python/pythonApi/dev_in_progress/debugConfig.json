@@ -1,0 +1,5 @@
+{
+  "cli.read_command.parse_electrode": true,
+  "cli": false,
+  "cli.read_command": true
+}

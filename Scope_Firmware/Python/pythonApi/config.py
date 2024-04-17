@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 class Config():
     """
@@ -82,3 +83,16 @@ class Config():
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
         for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename, cls.voltage_display_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)
+
+class debugNamespace(SimpleNamespace):
+    def from_json(self, json_file_name):
+        data = json.load(json_file_name)
+        for val in data.values():
+            assert isinstance(val, bool)
+        self.__dict__.update(data)
+
+    def __getitem__(self, key):
+        if key in self.__dict__.keys():
+            return self.__dict__[key]
+        # else:
+        return False
