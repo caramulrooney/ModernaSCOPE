@@ -9,5 +9,5 @@
   "prompt_history_filename": "settings/prompt_history.txt",
   "timezone": "US/Eastern",
   "debug": false,
-  "random_data": false
+  "random_data": true
 }

@@ -85,7 +85,7 @@ class Commands():
         show_parser = self.subparsers.add_parser("show", prog = "show", exit_on_error = exit_on_error, description =
     """Display information about the selected electrodes, most recent calibrations, and measurements.""")
         show_parser.add_argument('-i', '--ids', action = 'store_true', help = "Show how the A1-H12 notation is mapped onto the electrode index in the code. This can be useful for debugging or for inspecting the CSV files where calibration and measurement data are stored.")
-        show_parser.add_argument('-e', '--electrodes', type = str, default = "all", help = "Show which electrodes are selected by providing a range in A1-H12 notation.")
+        show_parser.add_argument('-e', '--electrodes', type = str, default = "", help = "Show which electrodes are selected by providing a range in A1-H12 notation.")
         show_parser.add_argument('-cv', '--calibration_voltage', action = 'store_true', help = "Show the voltages on each of the electrodes during the most recent calibration.")
         show_parser.add_argument('-cp', '--calibration_ph', action = 'store_true', help = "Show the pH on each of the electrodes during the most recent calibration.")
         show_parser.add_argument('-p', '--ph', action = 'store_true', help = "Show the pH on each of the electrodes for the most recent measurement.")
@@ -181,10 +181,15 @@ class Commands():
             voltages = self.sensor_interface.get_future_voltages_blocking(num_measurements)
         # voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
+        if Config.debug:
+            print(f"{voltages = }")
+        voltages = self.combine_readings_element_wise(voltages)
+
         # set voltage reading of electrodes not being measured to None
         for electrode_id in range(N_ELECTRODES):
             if electrode_id not in electrode_ids_being_calibrated:
                 voltages[electrode_id] = None
+
         guid = self.sensor_data.add_calibration(ph, voltages)
         print(f"Storing calibration entry with GUID '{guid}'")
         if voltage:
@@ -230,11 +235,11 @@ class Commands():
         """
         Callback function for 'show' command.
         """
-        show_electrodes: bool = electrodes != ""
-        if sum([ids, show_electrodes, calibration_voltage, calibration_ph, voltage, ph]) > 1:
+        # show_electrodes: bool = electrodes != ""
+        if sum([ids, calibration_voltage, calibration_ph, voltage, ph]) > 1:
             print("Please select only one option at a time.")
             return
-        if sum([ids, show_electrodes, calibration_voltage, calibration_ph, voltage, ph]) < 1:
+        if sum([ids, calibration_voltage, calibration_ph, voltage, ph]) < 1:
             ids = True
         if ids:
             ElectrodeNames.ascii_art_electrode_ids()
