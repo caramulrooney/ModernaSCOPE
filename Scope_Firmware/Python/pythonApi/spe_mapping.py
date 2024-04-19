@@ -1,104 +1,139 @@
 from constants import N_ELECTRODES
 from electrode_names import ElectrodeNames
+from typing import Optional
+import numpy as np
 
-electrode_id_battleship_to_spe = {
-"A6":  95,
-"A8":  94,
-"A9":  93,
-"A7":  92,
-"A4":  91,
-"A1":  90,
-"A1":  89,
-"A5":  88,
-"B2":  87,
-"B4":  86,
-"B5":  85,
-"B3":  84,
-"A12": 83,
-"A11": 82,
-"A10": 81,
-"B1":  80,
-"B10": 79,
-"B12": 78,
-"C1":  77,
-"B11": 76,
-"A1":  75,
-"B7":  74,
-"B6":  73,
-"B9":  72,
-"C6":  71,
-"C8":  70,
-"C9":  69,
-"C7":  68,
-"C4":  67,
-"C3":  66,
-"C2":  65,
-"C5":  64,
-"A1":  63,
-"D4":  62,
-"D5":  61,
-"D3":  60,
-"C12": 59,
-"C11": 58,
-"C10": 57,
-"D1":  56,
-"D10": 55,
-"D12": 54,
-"E1":  53,
-"D11": 52,
-"D8":  51,
-"D7":  50,
-"D6":  49,
-"D9":  48,
-"A1":  47,
-"A1":  46,
-"A1":  45,
-"A1":  44,
-"A1":  43,
-"A1":  42,
-"A1":  41,
-"A1":  40,
-"A1":  39,
-"A1":  38,
-"A1":  37,
-"A1":  36,
-"A1":  35,
-"A1":  34,
-"A1":  33,
-"A1":  32,
-"H10": 31,
-"H12": 30,
-"A1":  29,
-"H11": 28,
-"H8":  27,
-"H7":  26,
-"H6":  25,
-"H9":  24,
-"H2":  23,
-"H4":  22,
-"H5":  21,
-"H3":  20,
-"G12": 19,
-"G11": 18,
-"G10": 17,
-"H1":  16,
-"G6":  15,
-"G8":  14,
-"G9":  13,
-"G7":  12,
-"G4":  11,
-"G3":  10,
-"G2":  9,
-"G5":  8,
-"F6":  7,
-"A1":  6,
-"A1":  5,
-"A1":  4,
-"A1":  3,
-"A1":  2,
-"A1":  1,
-"A1":  0,
-}
+class electrodeMap():
+    _sensor_index_to_electrode_id_battleship = {
+        "A6":  "H12",
+        "A8":  "H11",
+        "A9":  "H10",
+        "A7":  "H9",
+        "A4":  "H8",
+        "A1":  "H7",
+        "A1":  "H6",
+        "A5":  "H5",
+        "B2":  "H4",
+        "B4":  "H3",
+        "B5":  "H2",
+        "B3":  "H1",
+        "A12": "G12",
+        "A11": "G11",
+        "A10": "G10",
+        "B1":  "G9",
+        "B10": "G8",
+        "B12": "G7",
+        "C1":  "G6",
+        "B11": "G5",
+        "A1":  "G4",
+        "B7":  "G3",
+        "B6":  "G2",
+        "B9":  "G1",
+        "C6":  "F12",
+        "C8":  "F11",
+        "C9":  "F10",
+        "C7":  "F9",
+        "C4":  "F8",
+        "C3":  "F7",
+        "C2":  "F6",
+        "C5":  "F5",
+        "A1":  "F4",
+        "D4":  "F3",
+        "D5":  "F2",
+        "D3":  "F1",
+        "C12": "E12",
+        "C11": "E11",
+        "C10": "E10",
+        "D1":  "E9",
+        "D10": "E8",
+        "D12": "E7",
+        "E1":  "E6",
+        "D11": "E5",
+        "D8":  "E4",
+        "D7":  "E3",
+        "D6":  "E2",
+        "D9":  "E1",
+        "A1":  "D12",
+        "A1":  "D11",
+        "A1":  "D10",
+        "A1":  "D9",
+        "A1":  "D8",
+        "A1":  "D7",
+        "A1":  "D6",
+        "A1":  "D5",
+        "A1":  "D4",
+        "A1":  "D3",
+        "A1":  "D2",
+        "A1":  "D1",
+        "A1":  "C12",
+        "A1":  "C11",
+        "A1":  "C10",
+        "A1":  "C9",
+        "H10": "C8",
+        "H12": "C7",
+        "A1":  "C6",
+        "H11": "C5",
+        "H8":  "C4",
+        "H7":  "C3",
+        "H6":  "C2",
+        "H9":  "C1",
+        "H2":  "B12",
+        "H4":  "B11",
+        "H5":  "B10",
+        "H3":  "B9",
+        "G12": "B8",
+        "G11": "B7",
+        "G10": "B6",
+        "H1":  "B5",
+        "G6":  "B4",
+        "G8":  "B3",
+        "G9":  "B2",
+        "G7":  "B1",
+        "G4":  "A12",
+        "G3":  "A11",
+        "G2":  "A10",
+        "G5":  "A9",
+        "F6":  "A8",
+        "A1":  "A7",
+        "A1":  "A6",
+        "A1":  "A5",
+        "A1":  "A4",
+        "A1":  "A3",
+        "A1":  "A2",
+        "A1":  "A1",
+    }
 
-electrode_id_to_spe = {ElectrodeNames.parse_electrode_input(key)[0]: val for key, val in electrode_id_battleship_to_spe.items()}
-print(electrode_id_to_spe)
+    def __init__(self):
+        self.sensor_index_to_electrode_id = {
+            ElectrodeNames.parse_electrode_input(key)[0]: ElectrodeNames.parse_electrode_input(val)[0]
+            for key, val in self._sensor_index_to_electrode_id_battleship.items()
+        }
+        self.electrode_id_array = np.array([-1 for x in range(N_ELECTRODES)], dtype = int)
+        for key, val in self.sensor_index_to_electrode_id.items():
+            self.electrode_id_array[key] = val
+        self.undefined_locs = self.electrode_id_array == -1
+        print(f"Electrode mapping contains {np.sum(self.undefined_locs)} undefined electrodes.")
+
+    def get_electrode_id(self, sensor_index: int) -> Optional[int]:
+        if sensor_index in self.sensor_index_to_electrode_id.keys():
+            return self.sensor_index_to_electrode_id[sensor_index]
+        # else:
+        return None
+
+    def remap_sensor_array(self, sensor_array: np.ndarray[float]) -> np.ndarray[float]:
+        assert len(sensor_array) == N_ELECTRODES
+        remapped = sensor_array[self.electrode_id_array]
+        remapped[self.undefined_locs] = None
+        return remapped
+
+    def remap_sensor_list(self, sensor_array: list[float]) -> list[Optional[float]]:
+        """
+        Call remap_sensor_array on a list input and returning a list output. NaN values are converted to None.
+        """
+        remapped = list(self.remap_sensor_array(np.array(sensor_array, dtype = float)))
+        remapped = [None if np.isnan(x) else x for x in remapped]
+        return remapped
+
+e = electrodeMap()
+print(e.remap_sensor_array(np.arange(N_ELECTRODES, dtype = float)))
+print(e.remap_sensor_list(list(range(N_ELECTRODES))))
