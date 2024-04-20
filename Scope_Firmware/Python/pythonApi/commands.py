@@ -135,10 +135,10 @@ class Commands():
         """
         Callback function for 'measure' command.
         """
-        if Config.debug.cli.received_command.measure:
+        if Config.debug.cli.received_command.args.measure:
             print(f"Inside of measure, {electrodes=}, {num_measurements=}, {past_data=}, {show=}, {voltage=}")
         electrode_ids_being_measured = ElectrodeNames.parse_electrode_input(electrodes)
-        if Config.debug.cli.received_command.measure:
+        if Config.debug.cli.received_command.electrodes.measure:
             print(f"Measuring electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_measured)}].")
 
         if past_data:
@@ -146,7 +146,7 @@ class Commands():
         else:
             voltages = self.sensor_interface.get_future_voltages_blocking(num_measurements)
         # voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
-        if Config.debug.cli:
+        if Config.debug.cli.measurement_results.measure:
             print(f"{voltages = }")
         voltages = self.combine_readings_element_wise(voltages)
 
@@ -155,9 +155,11 @@ class Commands():
             if electrode_id not in electrode_ids_being_measured:
                 voltages[electrode_id] = None
 
-        print("Converting measurement to ph...")
+        if Config.debug.cli.feedback.store_data_file.measure:
+            print("Converting measurement to ph...")
         guid = self.sensor_data.add_measurement(voltages)
-        print(f"Storing pH measurement with GUID '{guid}'")
+        if Config.debug.cli.feedback.store_data_file.measure:
+            print(f"Storing pH measurement with GUID '{guid}'")
         if voltage:
             self.show_most_recent_measurement_voltage()
             return
@@ -169,10 +171,10 @@ class Commands():
         """
         Callback function for 'calibrate' command.
         """
-        if Config.debug.cli.received_command.calibrate:
+        if Config.debug.cli.received_command.args.calibrate:
             print(f"Inside of calibrate, {electrodes=}, {ph=}, {num_measurements=}, {past_data=}, {show=}, {voltage=}")
         electrode_ids_being_calibrated = ElectrodeNames.parse_electrode_input(electrodes)
-        if Config.debug.cli.received_command.calibrate:
+        if Config.debug.cli.received_command.electrodes.calibrate:
             print(f"Calibrating electrodes [{ElectrodeNames.to_battleship_notation(electrode_ids_being_calibrated)}].")
 
         if past_data:
@@ -181,7 +183,7 @@ class Commands():
             voltages = self.sensor_interface.get_future_voltages_blocking(num_measurements)
         # voltages = self.get_voltages_blocking(n_measurements = num_measurements, delay_between_measurements = time_interval)
 
-        if Config.debug:
+        if Config.debug.cli.measurement_results.calibrate:
             print(f"{voltages = }")
         voltages = self.combine_readings_element_wise(voltages)
 
@@ -191,7 +193,8 @@ class Commands():
                 voltages[electrode_id] = None
 
         guid = self.sensor_data.add_calibration(ph, voltages)
-        print(f"Storing calibration entry with GUID '{guid}'")
+        if Config.debug.cli.feedback.store_data_file.calibrate:
+            print(f"Storing calibration entry with GUID '{guid}'")
         if voltage:
             self.show_most_recent_calibration_voltage()
             return
@@ -204,15 +207,16 @@ class Commands():
         Callback function for 'load' command.
         """
         flag = False
-        if Config.debug:
+        if Config.debug.cli.received_command.args.reload_files:
             print(f"Inside of reload_files")
         if not len(file) == 0:
             flag = Config.set_config(file, mkdirs = True)
         self.sensor_data = SensorData()
-        if flag:
-            print(f"Loaded data from the files specified by '{file}'.")
-        else:
-            print("Loaded data from all files into memory.")
+        if Config.debug.cli.feedback.reload_files:
+            if flag:
+                print(f"Loaded data from the files specified by '{file}'.")
+            else:
+                print("Loaded data from all files into memory.")
 
     @unpack_namespace
     def write_files(self, file):
@@ -220,26 +224,32 @@ class Commands():
         Callback function for 'write' command.
         """
         flag = False
-        if Config.debug:
+        if Config.debug.cli.received_command.args.write_files:
             print(f"Inside of write_files")
         if not len(file) == 0:
             flag = Config.set_config(file, mkdirs = True)
         self.sensor_data.write_data()
-        if flag:
-            print(f"Updated data in the files specified by '{file}'.")
-        else:
-            print("Finished updating all files.")
+        if Config.debug.cli.feedback.write_files:
+            if flag:
+                print(f"Updated data in the files specified by '{file}'.")
+            else:
+                print("Finished updating all files.")
 
     @unpack_namespace
     def show(self, ids: bool, electrodes: str, calibration_voltage: bool, calibration_ph: bool, voltage: bool, ph: bool):
         """
         Callback function for 'show' command.
         """
+        if Config.debug.cli.received_command.args.show:
+            print(f"Inside of show, {ids=}, {electrodes=}, {calibration_voltage=}, {calibration_ph=}, {voltage=}, {ph=}")
         # show_electrodes: bool = electrodes != ""
-        if sum([ids, calibration_voltage, calibration_ph, voltage, ph]) > 1:
+        bool_vars = [ids, calibration_voltage, calibration_ph, voltage, ph]
+        if sum(bool_vars) > 1:
+            if Config.debug.cli.received_command.error.show:
+                print(f"Received {sum(bool_vars)} options ({[f'{var=}' for var in bool_vars]})")
             print("Please select only one option at a time.")
             return
-        if sum([ids, calibration_voltage, calibration_ph, voltage, ph]) < 1:
+        if sum(bool_vars) < 1:
             ids = True
         if ids:
             ElectrodeNames.ascii_art_electrode_ids()
@@ -262,24 +272,32 @@ class Commands():
         """
         Callback function for 'monitor' command.
         """
+        if Config.debug.cli.received_command.args.monitor:
+            print(f"Inside of calibrate, {electrodes=}, {file=}, {graph=}")
         self.sensor_display.electrodes = ElectrodeNames.parse_electrode_input(electrodes)
         if file:
-            print(f"Displaying voltage readings in file {Config.voltage_display_filename}.")
+            if Config.debug.cli.feedback.write_files:
+                print(f"Displaying voltage readings in file {Config.voltage_display_filename}.")
             self.sensor_display.start_file_display()
         else:
             if self.sensor_display.running_file_display:
-                print(f"Stopping file display. To start file display, use 'monitor -f'.")
+                if Config.debug.cli.feedback.monitor:
+                    print(f"Stopping file display. To start file display, use 'monitor -f'.")
             else:
-                print(f"To start file display, use 'monitor -f'.")
+                if Config.debug.cli.feedback.monitor.alternative:
+                    print(f"To start file display, use 'monitor -f'.")
             self.sensor_display.stop_file_display()
         if graph:
-            print(f"Displaying graphs in new window.")
+            if Config.debug.cli.feedback.monitor:
+                print(f"Displaying graphs in new window.")
             self.sensor_display.start_graphical_display()
         else:
             if self.sensor_display.running_graphical_display:
-                print(f"Stopping graphical display. To start graphical display, use 'monitor -g'.")
+                if Config.debug.cli.feedback.monitor:
+                    print(f"Stopping graphical display. To start graphical display, use 'monitor -g'.")
             else:
-                print(f"To start graphical display, use 'monitor -g'.")
+                if Config.debug.cli.feedback.monitor.alternative:
+                    print(f"To start graphical display, use 'monitor -g'.")
             self.sensor_display.stop_graphical_display()
 
     @unpack_namespace
@@ -287,6 +305,8 @@ class Commands():
         """
         Callback function for 'conversion_info' command.
         """
+        if Config.debug.cli.received_command.args.generate_conversion_info:
+            print(f"Inside of calibrate, {measurement_id=}")
         self.sensor_data.calculate_ph(measurement_id, write_data = True)
 
     def show_most_recent_calibration_ph(self):
@@ -341,10 +361,10 @@ class Commands():
         #      n_measurements
         # ]
         readings_array = np.array(readings)
-        if Config.debug:
+        if Config.debug.measurement.combine.before:
             print(f"{readings_array = }")
         averaged = average_func(readings_array, axis = 0) # column-wise
-        if Config.debug:
+        if Config.debug.measurement.combine.after:
             print(f"{averaged = }")
         return list(averaged)
 
