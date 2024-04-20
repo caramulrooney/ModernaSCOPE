@@ -1,5 +1,4 @@
 {
-  "cli.read_command.parse_electrode": true,
-  "cli": true,
-  "cli.received_command": false
+  "cli.feedback": true,
+  "serial": true
 }

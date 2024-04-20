@@ -53,11 +53,11 @@ class SensorDisplay():
 
         # wait until the process exits, usually due to someone closing the display window
         process.join()
-        if Config.debug:
+        if Config.debug.threading.monitor.graphical.join.process:
             print("Joined graphical display process.")
         self.running_graphical_display = False
         update_thread.join()
-        if Config.debug:
+        if Config.debug.threading.monitor.graphical.join.thread:
             print("Joined graphical display thread.")
 
     def run_graphical_display_process(self, graphical_data_queue):
@@ -68,7 +68,7 @@ class SensorDisplay():
         # multi.Process(target = graphical_display.run, args = (self.graphical_data_queue,), daemon = True).start()
         while self.running_graphical_display:
             voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
-            if Config.debug:
+            if Config.debug.threading.inside_thread.monitor.graphical.update:
                 print("Graphical display thread")
             graphical_data_queue.put(voltages)
 
@@ -92,13 +92,13 @@ class GraphicalDisplay():
         self.electrodes = electrodes
         self.cache = deque([{"ts": datetime.now(), "voltages": [0 for electrode_id in range(N_ELECTRODES)]} for element in range(self.cache_size)])
         self.data_lines = [[None for col in range(N_COLUMNS)] for row in range(N_ROWS)]
-        if Config.debug:
+        if Config.debug.threading.initialize.monitor.graphical.object_created:
             print("initializing GraphicalDisplay object")
 
     def run_update_deque(self):
         while True:
             new_data = self.queue.get() # blocking line
-            if Config.debug:
+            if Config.debug.threading.inside_thread.monitor.graphical.received_message:
                 print("GraphicalDisplay received a message!")
             self.__store_voltages_in_cache(new_data)
 
@@ -107,7 +107,8 @@ class GraphicalDisplay():
         self.fig.canvas.mpl_connect('close_event', exit)
         self.start_time = datetime.now()
         Thread(target = self.run_update_deque, daemon = True).start()
-        ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = Config.measurement_interval * SECONDS_TO_MILLISECONDS / 2)
+        ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = 1 * SECONDS_TO_MILLISECONDS / 2) # TODO: Delete this line and use Config.measurement_interval instead
+        # ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = Config.measurement_interval * SECONDS_TO_MILLISECONDS / 2)
         plt.show()
 
     def __store_voltages_in_cache(self, new_voltages):

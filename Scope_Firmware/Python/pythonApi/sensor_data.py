@@ -166,7 +166,7 @@ class SensorData():
             calibration_map_guid = calibration_map_df.index.name
             calibration_map_ts = self.measurement_data[self.measurement_data["guid"] == calibration_map_guid].index[0]
             calibration_map_name = f"{calibration_map_ts.strftime('%Y_%m_%d_%H_%M_%S_%f')}_Measurement_ID_({calibration_map_guid}).csv"
-            if Config.debug:
+            if Config.debug.cli.feedback.write_data:
                 print(f"Storing calibration map in file: {calibration_map_name}")
             calibration_map_path = Path(self.calibration_map_folder) / calibration_map_name
             calibration_map_df.to_csv(str(calibration_map_path), index = False)
@@ -243,7 +243,7 @@ class SensorData():
         pivoted_df = calibration_map_df.iloc[0:0]
         unique_guids = pd.melt(calibration_map_df)["value"].unique()
 
-        if Config.debug:
+        if Config.debug.sensor_data.pivot:
             print(unique_guids)
 
         for guid in unique_guids:
@@ -345,7 +345,7 @@ class SensorData():
                 self.calibration_map[f"electrode_{electrode_id}"] = calibration_list["guid"].to_list()
                 compare_guids = prev_guids.reset_index().equals(calibration_list["guid"].reset_index())
                 if not compare_guids:
-                    if Config.debug:
+                    if Config.debug.sensor_data.ph_conversion.compare_guids:
                         print("Guids are not all the same!")
                     guids_all_the_same = False
             prev_guids = calibration_list["guid"]

@@ -14,7 +14,7 @@ from numpy.random import rand
 arguments = docopt(__doc__)  # parse arguments based on docstring above
 print(arguments)
 if arguments["-e"] is None:
-    which_electrode = 6 # electrode id to plot
+    which_electrode = 5 # electrode id to plot
 else:
     which_electrode = int(arguments["-e"]) # electrode id to plot
 

@@ -4,6 +4,7 @@ from constants import N_ELECTRODES
 from threading import Event, Timer
 from config import Config
 from electrode_names import ElectrodeNames
+from spe_mapping import ElectrodeMap
 import numpy as np
 import serial
 import json
@@ -27,6 +28,7 @@ class SensorInterface():
         self.cache_size = cache_size
         self.cache = deque()
         self.measurements_pending: deque[MeasurementRequest] = deque()
+        self.electrode_map = ElectrodeMap()
 
     def get_voltages_single(self) -> list[float]:
         """
@@ -41,15 +43,15 @@ class SensorInterface():
                 with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
                     ser.write(b'e') # send request for electrode data
                     response = ser.readline().decode().strip() # read response
-                    if Config.debug:
+                    if Config.debug.serial.readline.raw:
                         print(response)
                     electrode_data = json.loads(response) # parse json data
-                    if Config.debug:
+                    if Config.debug.serial.readline.loads:
                         print("Electrode voltages: ", electrode_data)
-                    return self.remap_electrode_ids(electrode_data)
+                    return self.electrode_map.remap_sensor_list(electrode_data)
             except (UnicodeDecodeError, serial.SerialException):
-                # if Config.debug:
-                print(f"Error connecting to serial port. Retrying up to {n_tries - i - 1} more times.")
+                if Config.debug.serial.connection.error:
+                    print(f"Error connecting to serial port. Retrying up to {n_tries - i - 1} more times.")
                 pass
         raise serial.SerialException("Error connecting to serial port. Please check the connection and retry, or change the COM port in the config.json file and then type 'load'.")
 
@@ -62,7 +64,7 @@ class SensorInterface():
 
     def update(self):
         self.__store_voltages_in_cache()
-        if Config.debug:
+        if Config.debug.threading.inside_thread.sensor_interface.measurements_pending.count:
             print(f"Number of measurements pending: {len(self.measurements_pending)}")
         requests_to_delete = []
         for i, measurement_request in enumerate(self.measurements_pending):
@@ -72,17 +74,17 @@ class SensorInterface():
                 requests_to_delete.append(i)
         # delete the elements in a second step
         for n_deleted_already, i in enumerate(requests_to_delete):
-            if Config.debug:
+            if Config.debug.threading.inside_thread.sensor_interface.measurements_pending.delete:
                 print(f"deleting measurement request {i}, offset by position {n_deleted_already}.")
             del self.measurements_pending[i - n_deleted_already]
-            if Config.debug:
+            if Config.debug.threading.inside_thread.sensor_interface.measurements_pending.count:
                 print(f"length of data deque: {len(self.cache)}")
 
     def __check_if_promise_is_fulfilled(self, measurement_request):
-        if Config.debug:
+        if Config.debug.threading.inside_thread.sensor_interface.measurements_pending.count:
             print(f"checking promise. n_points_remaining = {measurement_request.n_points_remaining}")
         if measurement_request.n_points_remaining <= 0:
-            if Config.debug:
+            if Config.debug.threading.inside_thread.sensor_interface.measurements_pending.count:
                 print("setting data")
             measurement_request.ready.set()
 
@@ -111,7 +113,7 @@ class SensorInterface():
             promise.has_been_read = True
             raise MeasurementInterrupt("Aborting measurement due to keyboard interrupt.")
         else:
-            if Config.debug:
+            if Config.debug.threading.inside_thread.sensor_interface.promise.ready:
                 print("promise is ready!")
             return_data = self.__get_cache(promise.n_data_points)
             promise.has_been_read = True # flag the request as completed so it can be deleted

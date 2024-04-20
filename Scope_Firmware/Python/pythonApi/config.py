@@ -22,6 +22,7 @@ class Config():
         "timezone": "US/Eastern",
         "random_data": True,
     }
+    debug = False
 
     @classmethod
     def set_config(cls, config_filename: str, debug_filename: str, mkdirs: bool) -> bool:
