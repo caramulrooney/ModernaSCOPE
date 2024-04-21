@@ -22,7 +22,10 @@ class Config():
         "timezone": "US/Eastern",
         "random_data": True,
     }
-    debug = False
+
+    def __init__(self):
+        self.config_filename = Config.config_filename
+        self.debug_filename = Config.debug_filename
 
     @classmethod
     def set_config(cls, config_filename: str, debug_filename: str, mkdirs: bool) -> bool:
@@ -41,6 +44,10 @@ class Config():
 
         `timezone`: Time zone in which to store calibration and measurement records.
         """
+        cls.config_filename = config_filename
+        cls.debug_filename = debug_filename
+
+        cls.debug = DebugOptRoot(debug_filename)
 
         # initialize parameters with defaults
         for key, value in cls.default_values.items():
@@ -57,8 +64,6 @@ class Config():
         for key, value in data.items():
             setattr(cls, key, value)
 
-        cls.debug = DebugOptRoot(debug_filename)
-
         if mkdirs:
             cls.make_directories()
         return True
@@ -71,6 +76,10 @@ class Config():
         Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
         for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename, cls.voltage_display_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)
+
+    @classmethod
+    def initialize_from_object(cls, config):
+        cls.set_config(config_filename = config.config_filename, debug_filename = config.debug_filename, mkdirs = False)
 
 class DebugOptLeaf():
     """

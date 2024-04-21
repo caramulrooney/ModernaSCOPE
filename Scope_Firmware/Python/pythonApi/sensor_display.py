@@ -19,61 +19,49 @@ class SensorDisplay():
     def __init__(self, sensor_interface: SensorInterface):
         self.sensor_interface = sensor_interface
         self.graphical_data_queue = multi.Queue()
-        self.electrodes = list(range(N_ELECTRODES))
+        self.graphical_display_runner = GraphicalDisplayRunner(sensor_interface)
+        self.file_display_runner = FileDisplayRunner(sensor_interface)
 
     def start_graphical_display(self):
-        # don't start a duplicate thread instance
-        if self.running_graphical_display:
-            print(f"Graphical display is already running.")
-            return
-        self.running_graphical_display = True
-        Thread(target = self.run_graphical_display, daemon = True).start()
+        self.graphical_display_runner.start()
 
     def start_file_display(self):
-        # don't start a duplicate thread instance
-        if self.running_file_display:
-            print(f"File display is already running. See output in file {Config.voltage_display_filename}")
-            return
-        self.running_file_display = True
-        Thread(target = self.run_file_display, daemon = True).start()
+        self.file_display_runner.start()
 
     def stop_graphical_display(self):
-        self.running_graphical_display = False
+        self.graphical_display_runner.stop()
 
     def stop_file_display(self):
-        self.running_file_display = False
+        self.file_display_runner.stop()
 
-    def run_graphical_display(self):
-        # start new process to display matplotlib animation; start new thread with data pipeline
-        graphical_data_queue = multi.Queue()
-        process = multi.Process(target = self.run_graphical_display_process, args = (graphical_data_queue, ), daemon = True)
-        process.start()
-        update_thread = Thread(target = self.run_graphical_display_update_thread, args = (graphical_data_queue, ), daemon = True)
-        update_thread.start()
+class ThreadedDisplayRunner():
+    def __init__(self, sensor_interface: SensorInterface):
+        self.sensor_interface = sensor_interface
+        self.running = False
+        self.electrodes = list(range(N_ELECTRODES))
+        self.name = "Generic threaded display class"
 
-        # wait until the process exits, usually due to someone closing the display window
-        process.join()
-        if Config.debug.threading.monitor.graphical.join.process:
-            print("Joined graphical display process.")
-        self.running_graphical_display = False
-        update_thread.join()
-        if Config.debug.threading.monitor.graphical.join.thread:
-            print("Joined graphical display thread.")
+    def start(self):
+        # don't start a duplicate thread instance
+        if self.running:
+            print(f"{self.name} is already running.")
+            return
+        self.running = True
+        Thread(target = self.run, daemon = True).start()
+        pass
 
-    def run_graphical_display_process(self, graphical_data_queue):
-        graphical_display = GraphicalDisplay(graphical_data_queue, electrodes = self.electrodes)
-        graphical_display.run()
+    def stop(self):
+        self.running = False
 
-    def run_graphical_display_update_thread(self, graphical_data_queue):
-        # multi.Process(target = graphical_display.run, args = (self.graphical_data_queue,), daemon = True).start()
-        while self.running_graphical_display:
-            voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
-            if Config.debug.threading.inside_thread.monitor.graphical.update:
-                print("Graphical display thread")
-            graphical_data_queue.put(voltages)
+    def run(self):
+        # to be implemented by child classes
+        pass
 
-    def run_file_display(self):
-        while self.running_file_display:
+class FileDisplayRunner(ThreadedDisplayRunner):
+    name = "File display"
+
+    def run(self):
+        while self.running:
             voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
             with open(Config.voltage_display_filename, "w") as display_file:
                 voltages_to_display = []
@@ -83,6 +71,44 @@ class SensorDisplay():
                     else:
                         voltages_to_display.append(None)
                 display_file.write(ElectrodeNames.electrode_ascii_art(voltages_to_display))
+
+class GraphicalDisplayRunner(ThreadedDisplayRunner):
+    name = "Graphical display"
+
+    def run(self):
+        # start new process to display matplotlib animation
+        data_queue = multi.Queue()
+        process = multi.Process(target = self.run_process, args = (data_queue, Config()), daemon = True)
+        process.start()
+
+        # start new thread with data pipeline
+        update_thread = Thread(target = self.run_update_thread, args = (data_queue, ), daemon = True)
+        update_thread.start()
+
+        # wait until the process exits, usually due to someone closing the display window
+        process.join()
+        if Config.debug.threading.monitor.graphical.join.process:
+            print("Joined graphical display process.")
+
+        # set self.running to False to exit the while self.running loop inside the update thread
+        self.running = False
+
+        # wait until the update thread has finished running
+        update_thread.join()
+        if Config.debug.threading.monitor.graphical.join.thread:
+            print("Joined graphical display thread.")
+
+    def run_process(self, data_queue, config: Config):
+        Config.initialize_from_object(config)
+        graphical_display = GraphicalDisplay(data_queue, electrodes = self.electrodes)
+        graphical_display.run()
+
+    def run_update_thread(self, data_queue):
+        while self.running:
+            voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
+            if Config.debug.threading.inside_thread.monitor.graphical.update:
+                print("Graphical display thread")
+            data_queue.put(voltages)
 
 class GraphicalDisplay():
     cache_size = 20

@@ -2,6 +2,7 @@ from constants import N_ELECTRODES
 from electrode_names import ElectrodeNames
 from typing import Optional
 import numpy as np
+from config import Config
 
 class ElectrodeMap():
     _sensor_index_to_electrode_id_battleship = {
@@ -109,12 +110,14 @@ class ElectrodeMap():
             if val is not None else -1
             for key, val in self._sensor_index_to_electrode_id_battleship.items()
         }
-        print(self.sensor_index_to_electrode_id)
+        if Config.debug.electrode_mapping.dict.final:
+            print(self.sensor_index_to_electrode_id)
         self.electrode_id_array = np.array([-1 for x in range(N_ELECTRODES)], dtype = int)
         for key, val in self.sensor_index_to_electrode_id.items():
             self.electrode_id_array[key] = val
         self.undefined_locs = self.electrode_id_array == -1
-        print(f"Electrode mapping contains {np.sum(self.undefined_locs)} undefined electrodes.")
+        if Config.debug.electrode_mapping.error:
+            print(f"Electrode mapping contains {np.sum(self.undefined_locs)} undefined electrodes.")
 
     def get_electrode_id(self, sensor_index: int) -> Optional[int]:
         if sensor_index in self.sensor_index_to_electrode_id.keys():

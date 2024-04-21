@@ -1,4 +1,5 @@
 {
   "cli.feedback": true,
-  "serial": true
+  "serial": true,
+  "electrode_mapping.error": true
 }
