@@ -14,6 +14,7 @@ class Config():
         "serial_port": "COM4",
         "measurement_interval": 1, # second
         "voltage_display_filename": "display/voltage_display.txt",
+        "monitor_datasets_folder": "display/monitor_datasets/",
         "calibration_data_filename": "sensor_data/calibration_data.csv",
         "measurement_data_filename": "sensor_data/measurement_data.csv",
         "ph_result_filename": "sensor_data/ph_result.csv",
@@ -73,7 +74,10 @@ class Config():
         """
         Initialize the folder structure required by the file paths so the files can be created at runtime.
         """
-        Path(cls.calibration_map_folder).mkdir(parents = True, exist_ok = True)
+        # initialize folders
+        for folder in [cls.calibration_map_folder, cls.monitor_datasets_folder]:
+            Path(folder).mkdir(parents = True, exist_ok = True)
+        # initialize file names
         for path in [cls.calibration_data_filename, cls.measurement_data_filename, cls.ph_result_filename, cls.prompt_history_filename, cls.voltage_display_filename]:
             Path(path).parent.mkdir(parents = True, exist_ok = True)
 

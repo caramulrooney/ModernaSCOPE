@@ -7,10 +7,12 @@ from threading import Thread
 import multiprocessing as multi
 from collections import deque
 from datetime import datetime
-from tkinter import Tk, Button
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib
 import matplotlib.animation as animation
+import pandas as pd
+import datetime as dt
+from pytz import timezone
+from pathlib import Path
+from typing import Optional
 
 class SensorDisplay():
     running_graphical_display = False
@@ -39,7 +41,55 @@ class ThreadedDisplayRunner():
         self.sensor_interface = sensor_interface
         self.running = False
         self.electrodes = list(range(N_ELECTRODES))
-        self.name = "Generic threaded display class"
+
+    def make_monitor_data_file(self) -> tuple[pd.DataFrame, Path]:
+        """
+        Initialize a dataframe to hold measurement data taken during monitoring, including a notes column and one column for the voltage at each electrode during the measurement. Return the empty dataframe.
+        """
+        columns = [
+            "timestamp",
+            "seconds_since_start",
+            "notes",
+        ]
+        columns.extend([f"V_electrode_{i}" for i in range(N_ELECTRODES)])
+        df = pd.DataFrame(columns = columns).set_index("timestamp")
+
+        timestamp = dt.datetime.now(tz = timezone(Config.timezone))
+        monitor_data_file_name = f"monitor_started_at_{timestamp.strftime('%Y_%m_%d_%H_%M_%S_%f')}.csv"
+        monitor_data_file_path = Path(Config.monitor_datasets_folder) / monitor_data_file_name
+
+        # save the file as a csv
+        try:
+            df.to_csv(str(monitor_data_file_path), index = False)
+        except PermissionError:
+            print("Could not open CSV for wrting because it is open in another program.")
+        return df, monitor_data_file_path
+
+    def add_measurement(self, voltages: list[Optional[float]]):
+        """
+        Insert a new row in self.df_monitor with a list of electrode voltages. Electrode voltages should be passed as a list of 96 numbers, with None for the electrodes that are excluded. Create the necessary metadata for the record, including a unique GUID and timestamp. Automatically write the new row to the CSV file `measurement_data_filename` unless `write_data` is set to `False`. Automatically call self.calculate_ph() to insert a corresponding row in self.ph_result and write that to the CSV file `ph_result_filename` as well.
+        """
+        assert(len(voltages) == N_ELECTRODES)
+        timestamp = dt.datetime.now(tz = timezone(Config.timezone))
+
+        new_row_values = {
+            "timestamp": timestamp,
+            "seconds_since_start": (timestamp - self.start_time).seconds,
+            "notes": "",
+        }
+        new_row_values.update({f"V_electrode_{i}": [voltages[i]] for i in range(N_ELECTRODES)})
+
+        new_row_df = pd.DataFrame(new_row_values).dropna(axis = "columns").set_index("timestamp")
+        self.df_monitor = pd.concat([self.df_monitor if not self.df_monitor.empty else None, new_row_df], axis = "index")
+
+    def get_next_voltages_blocking(self):
+        voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
+        self.add_measurement(voltages)
+        try:
+            self.df_monitor.to_csv(self.df_monitor_filename)
+        except PermissionError:
+            print(f"{self.name}: Could not write to file '{self.df_monitor_filename}' because it is open in another program. Data will be saved once the other program is closed.")
+        return voltages
 
     def start(self):
         # don't start a duplicate thread instance
@@ -47,8 +97,11 @@ class ThreadedDisplayRunner():
             print(f"{self.name} is already running.")
             return
         self.running = True
+        self.df_monitor, self.df_monitor_filename = self.make_monitor_data_file()
+        self.start_time = dt.datetime.now(tz = timezone(Config.timezone))
+
+        # start running thread
         Thread(target = self.run, daemon = True).start()
-        pass
 
     def stop(self):
         self.running = False
@@ -62,7 +115,7 @@ class FileDisplayRunner(ThreadedDisplayRunner):
 
     def run(self):
         while self.running:
-            voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
+            voltages = self.get_next_voltages_blocking()
             with open(Config.voltage_display_filename, "w") as display_file:
                 voltages_to_display = []
                 for electrode_id in range(N_ELECTRODES):
@@ -105,7 +158,7 @@ class GraphicalDisplayRunner(ThreadedDisplayRunner):
 
     def run_update_thread(self, data_queue):
         while self.running:
-            voltages = self.sensor_interface.get_future_voltages_blocking(1)[0]
+            voltages = self.get_next_voltages_blocking()
             if Config.debug.threading.inside_thread.monitor.graphical.update:
                 print("Graphical display thread")
             data_queue.put(voltages)
