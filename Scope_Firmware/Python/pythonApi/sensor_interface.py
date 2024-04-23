@@ -50,6 +50,8 @@ class SensorInterface():
                     if Config.debug.serial.readline.loads:
                         print("Electrode voltages: ", electrode_data)
                     return self.electrode_map.remap_sensor_list(electrode_data)
+            except json.decoder.JSONDecodeError:
+                print(f"Could not decode message: '{response}'.")
             except (UnicodeDecodeError, serial.SerialException):
                 if Config.debug.serial.connection.error:
                     print(f"Error connecting to serial port. Retrying up to {n_tries - i - 1} more times.")
