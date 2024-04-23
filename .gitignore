@@ -17,7 +17,7 @@ fp-info-cache# Netlist files (exported from Eeschema)
 .venv
 
 # Other
-.vscode/
+*/.vscode/
 __pycache__/
 Scope_Firmware/Python/pythonApi/sensor_data/
 Scope_Firmware/Python/pythonApi/TEST_sensor_data/

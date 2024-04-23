@@ -3,8 +3,8 @@
 #include <SPI.h>
 #include <Wire.h>
 
-// #define TEENSY
-#define ESP8266
+#define TEENSY
+// #define ESP8266
 // #define DEBUG
 
 #define NUM_ELECTRODES 96

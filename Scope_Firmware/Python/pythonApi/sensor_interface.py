@@ -27,7 +27,7 @@ class SensorInterface():
         self.cache_size = cache_size
         self.cache = deque()
         self.measurements_pending: deque[MeasurementRequest] = deque()
-        self.electrode_map = ElectrodeMap()
+        self.electrode_map = ElectrodeMap(rev = Config.board_revision)
 
     def get_voltages_single(self) -> list[float]:
         """
@@ -35,11 +35,13 @@ class SensorInterface():
         """
         if Config.random_data:
             return rand(N_ELECTRODES).tolist()
+        if Config.debug.serial.com_port:
+            print(f"Trying to connect on Serial COM port '{Config.serial_port}'")
         # else
         n_tries = 5
         for i in range(n_tries):
             try:
-                with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
+                with serial.Serial(Config.serial_port, 115200, timeout=1) as ser: # TO DO: change serial port
                     ser.write(b'e') # send request for electrode data
                     response = ser.readline().decode().strip() # read response
                     if Config.debug.serial.readline.raw:

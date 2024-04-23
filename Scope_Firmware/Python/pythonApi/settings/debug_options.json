@@ -1,5 +1,6 @@
 {
   "cli.feedback": true,
-  "serial": true,
-  "electrode_mapping.error": true
+  "serial": false,
+  "electrode_mapping.error": true,
+  "serial.com_port": false
 }

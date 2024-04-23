@@ -186,7 +186,7 @@ class GraphicalDisplay():
         self.fig.canvas.mpl_connect('close_event', exit)
         self.start_time = datetime.now()
         Thread(target = self.run_update_deque, daemon = True).start()
-        ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = 1 * SECONDS_TO_MILLISECONDS / 2) # TODO: Delete this line and use Config.measurement_interval instead
+        ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = 1 * SECONDS_TO_MILLISECONDS / 2, save_count = 10) # TODO: Delete this line and use Config.measurement_interval instead
         # ani = animation.FuncAnimation(self.fig, self.display_graphs, repeat = True, interval = Config.measurement_interval * SECONDS_TO_MILLISECONDS / 2)
         plt.show()
 
