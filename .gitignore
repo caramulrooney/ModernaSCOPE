@@ -13,6 +13,9 @@ fp-info-cache# Netlist files (exported from Eeschema)
 *.dsn
 *.ses
 
+# Python virtual environments
+.venv
+
 # Other
 .vscode/
 __pycache__/
