@@ -176,6 +176,9 @@ float calculateVoltage(int electrode, bool* status) {
 }
 
 void selectElectrode(int electrode) {
+    if (electrode >= 0b0110000) {
+        electrode = electrode + (0b1000000 - 0b0110000);
+    }
 #ifdef DEBUG
     Serial.print("Selecting electrode ");
     Serial.print(electrode);
