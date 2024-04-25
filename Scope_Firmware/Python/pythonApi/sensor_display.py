@@ -131,7 +131,7 @@ class GraphicalDisplayRunner(ThreadedDisplayRunner):
     def run(self):
         # start new process to display matplotlib animation
         data_queue = multi.Queue()
-        process = multi.Process(target = self.run_process, args = (data_queue, Config()), daemon = True)
+        process = multi.Process(target = self.run_process, args = (data_queue, Config.to_tuple_of_filenames()), daemon = True)
         process.start()
 
         # start new thread with data pipeline
@@ -151,8 +151,8 @@ class GraphicalDisplayRunner(ThreadedDisplayRunner):
         if Config.debug.threading.monitor.graphical.join.thread:
             print("Joined graphical display thread.")
 
-    def run_process(self, data_queue, config: Config):
-        Config.initialize_from_object(config)
+    def run_process(self, data_queue, config: tuple[str, str]):
+        Config.from_tuple_of_filenames(config)
         graphical_display = GraphicalDisplay(data_queue, electrodes = self.electrodes)
         graphical_display.run()
 

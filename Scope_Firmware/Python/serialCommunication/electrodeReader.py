@@ -24,7 +24,7 @@ def request_electrode_data(n_tries = 5):
     # with serial.Serial('/dev/ttyUSB0', 115200, timeout=1) as ser: # TO DO: change serial port
     for i in range(n_tries):
         try:
-            with serial.Serial('COM4', 115200, timeout=1) as ser: # TO DO: change serial port
+            with serial.Serial('COM10', 115200, timeout=1) as ser: # TO DO: change serial port
                 ser.write(b'e') # send request for electrode data
                 response = ser.readline().decode().strip() # read response
                 print(response)

@@ -29,6 +29,14 @@ class Config():
         self.debug_filename = Config.debug_filename
 
     @classmethod
+    def to_tuple_of_filenames(cls) -> tuple[str, str]:
+        return (cls.config_filename, cls.debug_filename)
+
+    @classmethod
+    def from_tuple_of_filenames(cls, tuple_of_filenames: tuple[str, str]):
+        cls.set_config(tuple_of_filenames[0], tuple_of_filenames[1], False)
+
+    @classmethod
     def set_config(cls, config_filename: str, debug_filename: str, mkdirs: bool) -> bool:
         """
         Read in configuration parameters as a json file and store the relevant fields as class properties. If a field is not provided, the default value is kept. Additional fields are ignored.
