@@ -42,7 +42,24 @@ class Commands():
             args.func(args) # call the function linked by set_defaults(func = func)
 
     def help(self, args):
-        self.parser.print_help()
+        def print_with_delim(command_name):
+            print()
+            print("------------------------------------------")
+            print(command_name.upper())
+            print()
+            self.subparsers.choices[command_name].print_help()
+
+        print_with_delim("help")
+        print_with_delim("measure")
+        print_with_delim("calibrate")
+        print_with_delim("monitor")
+        print_with_delim("show")
+        print_with_delim("load")
+        print_with_delim("write")
+        print_with_delim("conversion_info")
+        print_with_delim("quit")
+        print()
+        print("SCROLL UP TO SEE COMMANDS AND THEIR DESCRIPTIONS")
 
     def make_parsers(self, exit_on_error = False):
         help = self.subparsers.add_parser("help", prog = "measure", exit_on_error = exit_on_error, description =

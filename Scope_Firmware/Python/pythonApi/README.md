@@ -114,4 +114,171 @@ arguments they take.
   - `calibrate 7.0 -p -s`
   - `calibrate 7.0 -e A1-A12 -p`
 
-##
+## Command Descriptions
+
+List of available commands:
+
+- `measure`: Take one measurement, convert it to pH, and store it in a file.
+- `calibrate`: Take one measurement and store it in a calibration data file.
+- `show`: Show information about the sensor or the most recent data.
+- `monitor`: Display sensor voltage readings in a continually updated fashion.
+- `load`: Reload settings files.
+- `write`: Re-save the most recent data, if such a save failed previously.
+- `conversion_info`: Show which calibration data were used in a pH conversion.
+- `help`: Display information about how to use certain functions.
+- `quit`: Exit the command-line interface.
+
+### Help
+
+Usage: `measure [-h]`
+
+Measure pH of electrodes within a certain range once the measurements have
+settled. Silently run in the background until measurements are settled, then
+print the results in a tabular format.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+
+### Measure
+
+Usage: `measure [-h] [-e ELECTRODES] [- NUM_MEASUREMENTS`] [-p] [-s] [-v]`
+
+Measure pH of electrodes within a certain range once the measurements have
+settled. Silently run in the background until measurements are settled, then
+print the results in a tabular format.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+- `-e ELECTRODES`, `--electrodes ELECTRODES`: Electrode range to measure.
+  Default is all 96 electrodes.
+- `-n NUM_MEASUREMENTS`, `--num_measurements NUM_MEASUREMENTS`: Number of
+  measurements to take and average together. Default is 5 measurements. `-p`,
+  --past_data Read the past n measurements and, if so many measurements exist
+  already, return immediately.
+- `-s`, `--show`: Show the pH values after they are measured.
+- `-v`, `--voltage`: Show the voltage values after they are measured.
+
+### Calibrate
+
+Usage: `calibrate [-h] [-e ELECTRODES] [- NUM_MEASUREMENTS] [-p] [-s] [-v] ph`
+
+Calibrate electrodes with a standard pH buffer. Assume a standard buffer
+solution has already been applied to the specified electrodes. Store the current
+voltage for the specified electrodes in memory and use it as a comparison to
+calculate the pH of those electrodes in the future. Each calibration for a new
+pH value will be stored. If a new calibration is performed at a pH value that
+has already been calibrated, the previous calibration will be overwritten.
+
+Positional arguments:
+
+- `ph`: The pH of the buffer currently applied to the electrodes being
+  calibrated.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit..
+- `-e ELECTRODES`, `--electrodes ELECTRODES`: Electrode range to calibrate.
+  Default is all 96 electrodes.
+- `-n NUM_MEASUREMENTS`, `--num_measurements NUM_MEASUREMENTS`: Number of
+  measurements to take and average together. Default is 5 measurements.
+- `-p`, `--past_data`: Read the past n measurements and, if so many measurements
+  exist already, return immediately.
+- `-s`, `--show`: Show the pH values after they are measured.
+- `-v`, `--voltage`: Show the voltage values after they are measured.
+
+### Monitor
+
+Usage: `monitor [-h] [-e ELECTRODES] [-f] [-g]`
+
+Display sensor voltage readings in a continually updated fashion.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+- `-e ELECTRODES`, `--electrodes ELECTRODES`: Only monitor selected electrodes.
+  Default is all 96 electrodes.
+- `-f`, `--file`: Write continually updated voltage readings to the file
+  specified in the JSON configuration file (currently
+  display/voltage_display.txt).
+- `-g`, `--graph`: Display continually updated voltage readings in a new window
+  in graphical form.
+
+### Show
+
+Usage: `show [-h] [-i] [-e ELECTRODES] [-cv] [-cp] [-p] [-v]`
+
+Display information about the selected electrodes, most recent calibrations, and
+measurements.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+- `-i`, `--ids`: Show how the A1-H12 notation is mapped onto the electrode index
+  in the code. This can be useful for debugging or for inspecting the CSV files
+  where calibration and measurement data are stored.
+- `-e ELECTRODES`, `--electrodes ELECTRODES`: Show which electrodes are selected
+  by providing a range in A1-H12 notation.
+- `-cv`, `--calibration_voltage`: Show the voltages on each of the electrodes
+  during the most recent calibration.
+- `-cp`, `--calibration_ph`: Show the pH on each of the electrodes during the
+  most recent calibration.
+- `-p`, `--ph`: Show the pH on each of the electrodes for the most recent
+  measurement.
+- `-v`, `--voltage`: Show the voltages on each of the electrodes during the most
+  recent measurement.
+
+### Load
+
+Usage: `load [-h] [-f FILE]`
+
+Re-load the csv file for calibration data from memory.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+- `-f FILE`, `--file FILE`: Re-load files from the specified JSON configuration
+  file. Default is the configuration file used to initialize the program.
+
+### Write
+
+Usage: `write [-h] [-f FILE]`
+
+Write the currently stored data to a csv file. This should be done automatically
+after every measurement and calibration, except when a file write fails because
+the file was open in another program at the same time.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+- `-f FILE`, `--file FILE`: Write files to the filenames specified in the JSON
+  configuration file. Default is the configuration file used to initialize the
+  program.
+
+### Conversion_Info
+
+Usage: `conversion_info [-h] [-m MEASUREMENT_ID]`
+
+Generate conversion information for a given measurement ID to show which
+calibration data points were used to convert from a voltage to a pH. Store the
+resulting information as a CSV file in the folder specified in the configuration
+file (currently sensor_data/calibration_map/).
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+- `-m MEASUREMENT_ID`, `--measurement_id MEASUREMENT_ID`: Measurement ID for
+  which to generate conversion information.
+
+### Quit
+
+Usage: `quit [-h]`
+
+Exit the program.
+
+Optional arguments:
+
+- `-h`, `--help`: Show this help message and exit.
+
+SCROLL UP TO SEE COMMANDS AND THEIR DESCRIPTIONS
