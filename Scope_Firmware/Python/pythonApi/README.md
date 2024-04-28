@@ -1,55 +1,60 @@
-# Sensor Python API
+# Multiplex pH Sensor API
 
-## To upload the firmware to the board
+- Liquid added at
 
-1. Open VS Code, make sure Platformio is installed, and open the Platformio
-   sidebar. From the Platformio sidebar, click "Open Project".
+## Introduction
 
-2. In the file explorer, nagivate to the folder
-   `ModernaSCOPE/Scope_Firmware/Platformio/electrodeReader`. When opening a
-   Platformio folder, you should always open a directory containing a
-   `platformio.ini` file and a `src` subdirectory. The actual code will live in
-   the `src` directory, but you need to open that parent folder. Once the
-   correct folder is open in VS Code, open up the `src/main.cpp` file and make
-   edits as necessary. This might be needed when switching between code for the
-   ESP8266 and the Teensy 4.1.
+This is the API meant to be used with the multiplex pH sensor developed by the
+Olin College SCOPE team in collaboration with Moderna. To set up the device, it
+must be connected via USB cable to a computer running Windows. Then, the API
+should be started by running the `main.py` script in Python. This API runs a
+custom command-line interface, meaning that to perform actions like calibrating
+or starting a measurement the user must type the appropriate command into a
+terminal. Data are automatically stored in CSV files and can be accessed using
+MS Excel or another spreadsheet-editing software.
 
-3. Once VSCode has opened the `electordeReader` folder, and along the bottome
-   bar, you will notice a little check symbol next to an arrow symbol. The check
-   mark is for compile; the arrow symbol is for compile and upload (just like
-   the Arduino IDE). Upload the code to the board. If there is a serial
-   connection error, make sure no other programs are using the serial port, such
-   as the serial monitor.
+## First-time setup
 
-4. The `electrodeReader` code will wait until a character is sent over Serial.
-   When it receives an `e` character, it will respond with a list of the
-   voltages at each of the electrodes. That is its only task. All averaging,
-   calibration, and data storage occurs on the python interface side. You can
-   test the `electrodeReader` code by opening up a serial monitor (either from
-   VS Code or the Arduino IDE) and entering the letter `e` and pressing send.
-   You should see a list of numbers separated by commas printed to the serial
-   monitor.
+1. Open a command prompt by searching for `Command Prompt` in the Windows start
+   menu.
+2. Ensure Python is installed on your computer. To do this, type
+   `python --version` into the command prompt. It is recommended that you have
+   Python version 3.10 or higher. To download the latest version of Python,
+   visit [python.org](https://www.python.org/downloads/).
+3. Clone or download the code in this repo and save it to a folder which you can
+   access, such as `C:\Users\your_username\Documents\multiplex-ph-sensor`. You
+   can download the code from `github.com`
+4. In the command prompt, use `cd path\to\your\directory` to navigate to the
+   directory where this repo is downloaded. For exmple, you might type
+   `cd C:\Users\your_username\Documents\multiplex-ph-sensor`.
+5. Make sure the USB cable from the device is plugged in to the computer.
+6. Run the command `python -m venv .venv`. This will create a virtual
+   environment in which code you intall will not affect the rest of the
+   computer.
+7. Run the command `.venv\Scripts\activate.bat` to activate the virtual
+   environment.
+8. Run the command `pip install -r requirements.txt`. This will install all
+   additional code needed to run the software. If this doesn't work, you can
+   install the packages manually, which is outlined in the Appendix.
+9. Run the command `mode | findstr COM`. This will print out a list of Serial
+   COM ports connected to your computer. The COM port assigned to the device
+   will vary, but it will be something like `COM 6` or `COM 10`. On some
+   machines the port `COM 3` will be used by an internal device, so you should
+   look for the port that is not `COM 3`. If there are multiple options
+   available, you can unplug the device and re-run the command to see which COM
+   port disappeared.
+10. In a text-editing program, open the file `settings\config.json` in this
+    repo. Find the setting named `"serial_port"`, and change its value to the
+    COM port you identified in the previous step. An example would be
+    `"serial_port": "COM6",`.
+11. In the `settings\config.json` file, change the setting `"random_data"` to
+    `false`, as in `"random_data": false`. This is a debugging setting which
+    randomly generates data points instead of reading them from the sensor.
+12. In the command prompt, run the command `python main.py -m`. This runs the
+    Python script to launch the software. The `-m` flag in the command sets up
+    the folder structure to store your data files and is only necessary the
+    first time you run the software. If successful, you should see the words
+    "Multiplex pH Sensor" in large text, and the text input prompt will become a
+    `#` symbol.
 
-## To run the Multiplex pH Sensor API:
-
-1. Open a command terminal, and navigate to the
-   `ModernaSCOPE/Scope_Firmware/Python/pythonApi` folder.
-2. In the command terminal, type `python3 main.py` or `python main.py`. This
-   will run the main python script in your terminal.
-3. If any "cannot find package" errors arise, you must install the proper python
-   packages. Very soon, I'm planning on implementing a `requirements.txt` file
-   which will allow you to install all the packages at once.
-4. If all goes well, you should see the header text displayed, saying "Multiplex
-   pH Sensor". Then you will be running inside the python prompt loop, with a
-   `#` symbol to prompt you.
-5. It may give you a "trying to connect to Serial" warning followed by a serial
-   error message. When this happens, press Ctrl+C to interrupt the program, and
-   then run `python3 main.py` or `python main.py` again. I'm working on a fix so
-   it can connect to the serial port on the first try.
-6. If that is working, you can enter commands at the `#` prompt. One useful
-   command is `help`. This will display some basic information about the
-   available commands. You can also enter the name of any command followed by
-   `-h` to display the help information for that command.
-7. The most useful command for you to run right now is `monitor -g`. This will
-   launch the window with graphs to display the voltage at each of the
-   electrodes.
+## Running the API
