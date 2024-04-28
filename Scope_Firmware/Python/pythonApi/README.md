@@ -295,10 +295,41 @@ the notation `"A1-C6:rowwise"`. To check that this notation is correct, use the
 command `show --electrodes A1-C6:rowwise`. Indeed, we see that this notation is
 correct.
 
-Next, we want to calibrate the electrode.
+Before you start performing calibrations and measurements, you probably want to
+have a way to visualize the data as it comes in, so you can get an idea of when
+a measurement has settled. One way to do this is to run
+`monitor --graph --electrodes A1-C6:rowwise`. This will pull up a set of graphs
+of the voltages on each of the electrodes we care about, and the graphs will be
+updated continuously as new data come in from the sensor.
+
+Now, you want to calibrate the electrode. Through prior knowledge, you assume a
+3-point calibration curve with pH buffers of 4.0, 7.0, and 10.0 pH will produce
+an accurate reading. First, place the pH 4 buffer solution onto each of the
+electrodes you will be using for the measurement. Watch the graphs to see the
+voltages change and approach a new value. Once they appear to have settled, run
+the command `calibrate 4.0 -n 10 -e A1-C6:rowwise`. This will collect another
+ten data points, average them together, and save the voltages at each electrode
+to the calibration data file. Since the sensor reads at a rate of one sample per
+second, this takes ten seconds to complete. If instead of waiting for ten more
+data points to occur you wanted to use the ten most recent data points and
+complete instantaneously, you could have added the `--past_data` flag, or `-p`
+for short, as in `calibrate 4.0 -n 10 -e A1-C6:rowwise -p`.
+
+Remove the pH 4 buffer solution, rinse the electrode, and apply the pH 7
+solution. Watch the voltages and wait for them to settle, then run
+`calibrate 7.0 -n 10`. Follow the same procedure to calibrate at pH 10.
+
+You can now verify that your calibration data were logged correctly. In a file
+explorer, navigate to the directory containing this repo, then go into the
+folder named `sensor_data`. Inside, you will find a file named
+`calibration_data.csv`. Open this file in Excel and verify that the three most
+recent entries are the ones we just performed. The timestamps for the last three
+rows should match the time of the calibration, and only the first 30 cells
+should have values; the rest of the columns should be blank.
 
 ### TODO:
 
+- Finish workflow example
 - Settings descriptions
 - Battleship notation
 - Calibration logic
