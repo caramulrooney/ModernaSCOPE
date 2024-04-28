@@ -1,7 +1,5 @@
 # Multiplex pH Sensor API
 
-- Liquid added at
-
 ## Introduction
 
 This is the API meant to be used with the multiplex pH sensor developed by the
@@ -91,9 +89,6 @@ arguments they take.
   - `measure`
   - `measure -p`
   - `measure -p -s`
-  - Note: as an alternative syntax, multiple flags can be combined into one, as
-    in
-  - `measure -ps`
 
 - Commands with parameters (optional flags requiring arguments)
 
@@ -114,6 +109,13 @@ arguments they take.
   - `calibrate 7.0 -p -s`
   - `calibrate 7.0 -e A1-A12 -p`
 
+Notes:
+
+- Most flags have two names: a one-letter name, such as `-e`, and a longer name,
+  such as `--electrodes`. The two names can be used interchangeably.
+- As an alternative syntax, multiple one-letter flags can be combined into one,
+  as in `measure -ps`. This only works for flags that don't take a parameter.
+
 ## Command Descriptions
 
 List of available commands:
@@ -130,11 +132,9 @@ List of available commands:
 
 ### Help
 
-Usage: `measure [-h]`
+Usage: `help [-h]`
 
-Measure pH of electrodes within a certain range once the measurements have
-settled. Silently run in the background until measurements are settled, then
-print the results in a tabular format.
+Display usage information for all commands.
 
 Optional arguments:
 
@@ -200,8 +200,7 @@ Optional arguments:
 - `-e ELECTRODES`, `--electrodes ELECTRODES`: Only monitor selected electrodes.
   Default is all 96 electrodes.
 - `-f`, `--file`: Write continually updated voltage readings to the file
-  specified in the JSON configuration file (currently
-  display/voltage_display.txt).
+  specified in the JSON configuration file.
 - `-g`, `--graph`: Display continually updated voltage readings in a new window
   in graphical form.
 
@@ -263,7 +262,7 @@ Usage: `conversion_info [-h] [-m MEASUREMENT_ID]`
 Generate conversion information for a given measurement ID to show which
 calibration data points were used to convert from a voltage to a pH. Store the
 resulting information as a CSV file in the folder specified in the configuration
-file (currently sensor_data/calibration_map/).
+file.
 
 Optional arguments:
 
@@ -281,4 +280,29 @@ Optional arguments:
 
 - `-h`, `--help`: Show this help message and exit.
 
-SCROLL UP TO SEE COMMANDS AND THEIR DESCRIPTIONS
+## Example Workflow
+
+Suppose you want to measure the pH of 30 different samples. These will easily
+fit onto one 96-well plate. You want to calibrate the electrode, then place your
+samples, wait for the pH readings to settle, and then take the average of 100
+sensor readings at each electrode and compare the results to known pH values.
+
+First, you have to choose which wells of the electrode to use, since you will
+only be using 30 out of 96 wells. Let's say you choose the first 30 wells,
+starting with A1 and counting along the rows (A1, A2, A3, ... B1, B2, B3, ...
+C1, C2, C3, ... C6) until C6, which is the 30th well. This can be represented by
+the notation `"A1-C6:rowwise"`. To check that this notation is correct, use the
+command `show --electrodes A1-C6:rowwise`. Indeed, we see that this notation is
+correct.
+
+Next, we want to calibrate the electrode.
+
+### TODO:
+
+- Settings descriptions
+- Battleship notation
+- Calibration logic
+- Modifying the code
+  - Settings
+  - Simple functions
+  - editing the code (forks, etc.)
