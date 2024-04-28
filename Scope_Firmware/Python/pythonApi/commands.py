@@ -42,13 +42,28 @@ class Commands():
             args.func(args) # call the function linked by set_defaults(func = func)
 
     def help(self, args):
-        self.parser.print_help()
+        def print_with_delim(command_name):
+            print()
+            print("------------------------------------------")
+            print(command_name.upper())
+            print()
+            self.subparsers.choices[command_name].print_help()
+
+        print_with_delim("help")
+        print_with_delim("measure")
+        print_with_delim("calibrate")
+        print_with_delim("monitor")
+        print_with_delim("show")
+        print_with_delim("load")
+        print_with_delim("write")
+        print_with_delim("conversion_info")
+        print_with_delim("quit")
+        print()
+        print("SCROLL UP TO SEE COMMANDS AND THEIR DESCRIPTIONS")
 
     def make_parsers(self, exit_on_error = False):
-        help = self.subparsers.add_parser("help", prog = "measure", exit_on_error = exit_on_error, description =
-    """Measure pH of electrodes within a certain range once the measurements have
-    settled. Silently run in the background until measurements are settled, then
-    print the results in a tabular format.""")
+        help = self.subparsers.add_parser("help", prog = "help", exit_on_error = exit_on_error, description =
+    """Display usage information for all commands.""")
         help.set_defaults(func = self.help)
 
         measure_parser = self.subparsers.add_parser("measure", prog = "measure", exit_on_error = exit_on_error, description =
@@ -242,8 +257,8 @@ class Commands():
         """
         if Config.debug.cli.received_command.args.show:
             print(f"Inside of show, {ids=}, {electrodes=}, {calibration_voltage=}, {calibration_ph=}, {voltage=}, {ph=}")
-        # show_electrodes: bool = electrodes != ""
-        bool_vars = [ids, calibration_voltage, calibration_ph, voltage, ph]
+        show_electrodes: bool = electrodes != ""
+        bool_vars = [ids, calibration_voltage, calibration_ph, voltage, ph, show_electrodes]
         if sum(bool_vars) > 1:
             if Config.debug.cli.received_command.error.show:
                 print(f"Received {sum(bool_vars)} options ({[f'{var=}' for var in bool_vars]})")
