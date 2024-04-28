@@ -57,4 +57,61 @@ MS Excel or another spreadsheet-editing software.
     "Multiplex pH Sensor" in large text, and the text input prompt will become a
     `#` symbol.
 
-## Running the API
+## Launching the API
+
+1. Make sure the USB cable from the device is plugged in to the computer.
+2. Open a command prompt by searching for `Command Prompt` in the Windows start
+   menu.
+3. In the command prompt, use `cd path\to\your\directory` to navigate to the
+   directory where this repo is downloaded. For exmple, you might type
+   `cd C:\Users\your_username\Documents\multiplex-ph-sensor`.
+4. Run the command `.venv\Scripts\activate.bat` to activate the virtual
+   environment.
+5. Run the command `python main.py` to launch the API software.
+
+## API Command Anatomy
+
+The API software is in the form of a command-line interface. That is, to perform
+specific actions with the sensor, such as calibrating or saving data, you type
+commands into the terminal and press enter to run them. Some commands are single
+words, such as `measure`, and most commands have various options, or flags,
+which tell the software to perform the command in a certain way. For example,
+`measure` takes an optional argument `-n <your_number>` which specifies how many
+data points to capture and average together to produce the measurement.
+
+Different commands may have slightly different syntaxes based on what kinds of
+arguments they take.
+
+- Commands with optional flags
+
+  - `action`
+  - `action -<flag>`
+  - `action -<flag> -<flag>`
+  - Examples:
+  - `measure`
+  - `measure -p`
+  - `measure -p -s`
+  - Note: as an alternative syntax, multiple flags can be combined into one, as
+    in
+  - `measure -ps`
+
+- Commands with parameters (optional flags requiring arguments)
+
+  - `action -<param> <value>`
+  - `action -<param> <value> -<param> <value>`
+  - `action -<param> <value> -<param> <value> -<flag>`
+  - Examples:
+  - `measure -n 5`
+  - `measure -n 5 -e A1-A12`
+  - `measure -n 5 -e A1-A12 -s`
+
+- Commands with a required first argument
+  - `action <required_argument>`
+  - `action <required_argument> -<flag> -<flag>`
+  - `action <required_argument> -<param> <value> -<flag>`
+  - Examples:
+  - `calibrate 7.0`
+  - `calibrate 7.0 -p -s`
+  - `calibrate 7.0 -e A1-A12 -p`
+
+##
