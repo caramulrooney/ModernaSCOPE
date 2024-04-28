@@ -317,15 +317,42 @@ for short, as in `calibrate 4.0 -n 10 -e A1-C6:rowwise -p`.
 
 Remove the pH 4 buffer solution, rinse the electrode, and apply the pH 7
 solution. Watch the voltages and wait for them to settle, then run
-`calibrate 7.0 -n 10`. Follow the same procedure to calibrate at pH 10.
+`calibrate 7.0 -n 10 -e A1-C6:rowwise`. Follow the same procedure to calibrate
+at pH 10.
 
 You can now verify that your calibration data were logged correctly. In a file
 explorer, navigate to the directory containing this repo, then go into the
 folder named `sensor_data`. Inside, you will find a file named
 `calibration_data.csv`. Open this file in Excel and verify that the three most
-recent entries are the ones we just performed. The timestamps for the last three
-rows should match the time of the calibration, and only the first 30 cells
-should have values; the rest of the columns should be blank.
+recent entries are the ones you just performed. The timestamps for the last
+three rows should match the time of the calibration, and only the first 30 cells
+should have values; the rest of the columns should be blank. When you are done
+viewing the data, you must close Excel, because this interferes with the
+software accessing the same data to perform calibrations.
+
+Now it's time to take the measurement. Rinse the electrode and place your sample
+solution into the 30 wells you just calibrated. Watch the voltages and wait for
+them to settle, then run `measure -n 100 -e A1-C6:rowwise`. Since you are taking
+the average of 100 sensor readings, it will take about 100 seconds to complete,
+during which time you cannot perform any other commands. Once the measurement is
+complete, it will print a message and allow you to type again.
+
+The average of the voltage values at each electrode will be stored as a row in
+the `sensor_data` folder in a file named `measurement_data.csv`. The pH value
+calculated using the conversion data will be stored as a row in the
+`ph_result.csv` file. Open the `ph_result.csv` file in Excel and look at the
+most recent row to view the data from this experiment.
+
+## Calibration Logic
+
+If you believe a calibration was performed incorrectly, you can change the value
+in the `is_valid` column of the spreadsheet and optionally leave a note as to
+why in the `invalid_reason` column. This will ensure that the data from that
+calibration run will not be used.
+
+A list of which calibration data points were used for this conversion will be
+stored in the `calibration_map` folder with a name that contains the timestamp
+and row ID of the measurement.
 
 ### TODO:
 

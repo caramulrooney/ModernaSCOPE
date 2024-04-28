@@ -7,7 +7,7 @@
   "calibration_data_filename": "sensor_data/calibration_data.csv",
   "measurement_data_filename": "sensor_data/measurement_data.csv",
   "ph_result_filename": "sensor_data/ph_result.csv",
-  "calibration_map_filename": "sensor_data/calibration_map.csv",
+  "calibration_map_folder": "sensor_data/calibration_map/",
   "prompt_history_filename": "settings/prompt_history.txt",
   "timezone": "US/Eastern",
   "random_data": true
