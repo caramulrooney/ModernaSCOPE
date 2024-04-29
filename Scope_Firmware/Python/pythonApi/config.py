@@ -20,6 +20,7 @@ class Config():
         "ph_result_filename": "sensor_data/ph_result.csv",
         "calibration_map_folder": "sensor_data/calibration_map/",
         "prompt_history_filename": "settings/prompt_history.txt",
+        "calibration_invalid_time": "12 hours",
         "timezone": "US/Eastern",
         "random_data": True,
     }

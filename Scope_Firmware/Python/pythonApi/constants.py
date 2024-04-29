@@ -20,8 +20,6 @@ SECONDS_TO_MILLISECONDS = 1000
 
 # raise a warning if fewer than this number of calibration data points would be used in a conversion
 MIN_CALIBRATIONS_RECOMMENDED = 3
-# do not refer to calibration data older than this amount of time
-MAX_CALIBRATION_TIME = dt.timedelta(hours = 12)
 # treat calibration data as duplicates if two calibrations were performed with pH within this amount of each other
 PH_EPSILON = 0.5
 

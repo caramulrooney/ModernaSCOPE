@@ -341,22 +341,191 @@ The average of the voltage values at each electrode will be stored as a row in
 the `sensor_data` folder in a file named `measurement_data.csv`. The pH value
 calculated using the conversion data will be stored as a row in the
 `ph_result.csv` file. Open the `ph_result.csv` file in Excel and look at the
-most recent row to view the data from this experiment.
+most recent row to view the results of the measurement.
 
-## Calibration Logic
+## Sensor Data Files
 
-If you believe a calibration was performed incorrectly, you can change the value
-in the `is_valid` column of the spreadsheet and optionally leave a note as to
-why in the `invalid_reason` column. This will ensure that the data from that
-calibration run will not be used.
+### Calibration Data File
+
+When a calibration is performed with the `calibrate` command, the data are
+stored to a file called `sensor_data/calibration_data.csv`. Each calibration is
+saved as its own row in the spreadsheet and contains:
+
+- The timestamp at which the calibration was performed
+- A globally unique identifier ([GUID](https://www.guidgenerator.com/)), which
+  is a long string of hexadecimal characters used to refer to the specific
+  calibration in other contexts
+- The pH of buffer solution applied for the calibration
+- A column for the user to flag invalid data points, along with notes about why
+  they are invalid
+- The voltage at each electrode when the pH buffer was applied (96 columns in
+  total)
+
+If you believe a calibration was performed incorrectly, you can manually change
+the value in the `is_valid` column of the spreadsheet and optionally leave a
+note as to why in the `invalid_reason` column. This will ensure that the data
+from that calibration run will not be used.
+
+By default, calibration data older than 12 hours will be invalid (although this
+wil not be denoted in the `is_valid` column).
+
+### Measurement Data File
+
+When a measurement is performed with the `measure` command, the data are stored
+to a file called `sensor_data/measurement_data.csv`. Each measurement is saved
+as its own row in the spreadsheet and contains:
+
+- The timestamp at which the measurement was performed
+- A globally unique identifier ([GUID](https://www.guidgenerator.com/)), which
+  is a long string of hexadecimal characters used to refer to the specific
+  measurement in other contexts
+- The voltage at each electrode for that measurement (96 columns in total)
+
+Additionally, the data are automatically converted into pH values and stored in
+a separate file named `sensor_data/ph_result.csv`. The timestamps and GUIDs of
+the data in this file should correspond to the those of the
+`measurement_data.csv` file.
+
+### Calibration Map
 
 A list of which calibration data points were used for this conversion will be
-stored in the `calibration_map` folder with a name that contains the timestamp
-and row ID of the measurement.
+stored in the `sensor_data/calibration_map` folder. Since this information can
+be complex, a new file is generated for each measurement. The file name will
+contain the timestamp and GUID of the measurement. For example, the file
+`2024_04_24_14_38_40_243106_Measurement_ID_(cbdac8cf-5f5b-43c2-a5b6-326db986b4d0).csv`
+contains pH calibration information for the measurement performed at time
+`2024_04_24_14_38_40_243106` (April 24th 2024 at 2:38 PM and 40.24106 seconds)
+with GUID `cbdac8cf-5f5b-43c2-a5b6-326db986b4d0`.
+
+For the calibration map data file for a specific measurement, the rows represent
+the GUIDs of each of the calibration data points that could have been used in
+the pH conversion, and the columns indicate whether that calibration data point
+was used for each electrode. The most common case is if the same calibration
+data were used for all 96 electrodes, in which case the `All electrodes` column
+is `TRUE`. However, it is possible that different electrodes were calibrated at
+different times, in which case the calibration data points used for each
+electrode may be different.
+
+For example, if the file
+`2024_04_24_14_38_40_243106_Measurement_ID_(cbdac8cf-5f5b-43c2-a5b6-326db986b4d0).csv`
+contained the following, it would mean that for the measurement performed on
+April 24th, the first calibration data point was considered for all electrodes,
+whereas the second calibration data point only applied for electrode_0 (A1), and
+the third calibratino data point only applied for electrode_1 (A2). This could
+have come about if a calibration had to be redone for just the A2 electrode
+using the `calibrate <pH> --electrodes A2` command, such that the new
+calibration data point was used instead of the calibration data for the rest of
+the electrodes.
+
+| Calibration ID                       | All electrodes | electrode_0 | electrode_1 |
+| ------------------------------------ | -------------- | ----------- | ----------- |
+| 09e6d75b-a094-409d-9e0e-491ef1353446 | TRUE           | TRUE        | TRUE        |
+| 2da028c7-016d-4b88-a315-4121304cec54 | FALSE          | TRUE        | FALSE       |
+| 4fb73a8f-0e05-4291-8d02-a22532fb53ed | FALSE          | FALSE       | TRUE        |
+
+### Determining Which Calibration Data are Used
+
+A multi-step algorithm is used to determine which calibration data should be
+used in the conversion from voltage to pH of a given measurement.
+
+1. Per Macias Sensors' specifications, calibration data are not valid after 12
+   hours. Therefore, older calibration data will not be considered.
+2. If multiple calibrations were performed successively with the same pH, only
+   the most recent calibration will be considered. Two calibrations are taken to
+   be the same if their pH differs by less than 0.5.
+3. Among the remaining calibration data points, the two closest calibrations are
+   linearly interpolated between to find the pH of the measurement.
+
+This algorithm is performed individually for each electrode, since the
+calibration history may differ from electrode to electrode. The files in the
+`calibration_map` folder describe which calibration data points were used for
+each electrode in a given measurement.
+
+## Specifying Electrodes
+
+### Battleship Notation
+
+Sometimes you may want to apply a command to only a specific range of
+electrodes. Most commands have a `-e` parameter to specify an electrode range.
+
+- A single electrode can be identified by its battleship notation
+  - `A1`
+  - `B2`
+- A range of electrodes is specified with a `-`
+  - By default, the range is interpreted as 'Excel-like'; that is, only
+    electrodes within a rectangle spanning the range will be included.
+    - `A1-B3` expands to `A1, A2, A3, B1, B2, B3`
+    - `D12-H12` expands to `D12, F12, G12, H12`
+  - There are two other selection options. 'Row-wise' includes electrodes
+    horizontally, starting with the first electrode in the range and wrapping
+    around rows until it reaches the last electrode in the range.
+    - `A1-B3:rowwise` expands to
+      `A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, B1, B2, B3`
+  - `Column-wise` includes electrodes vertically, starting with the first
+    electrode in the range and wrapping around columns until it reaches the last
+    electrode in the range.
+    - `A1-B3:columnwise` expands to
+      `A1, B1, C1, D1, E1, F1, G1, H1, A2, B2, C2, D2, E2, F2, G2, H2, A3, B3`.
+- Multiple electrodes or ranges of electrodes can be concatenated with a `,`
+  (but no space character)
+  - `A1,B2`
+  - `A1-A12:rowwise,A12-H12:columnwise`
+
+Note: the words `rowwise`, `columnwise`, and `excellike` don't need to be typed
+out. The letters `r`, `c`, and `e` will also be recognized, as will any shorter
+prefix, such as `row`.
+
+If you want some practice creating electrode ranges, or if you want to check
+your notation before starting a measurement, you can use the `show -e` command,
+as in `show -e A1-B3:rowwise`. This will display a visual map of the electrode
+card with the selected electrodes marked.
+
+### Electrode ID Notation
+
+Electrodes can also be specified using a unique number from 0 to 95. This
+notation is often used internally to the software. This notation is also used
+for column names in the data files. The electrodes are named numerically,
+starting with `A1 = electrode_0`, and incrementing row-wise, as follows:
+
+- `A1 = electrode_0`
+- `A2 = electrode_1`
+- `A3 = electrode_2`
+- ...
+- `B1 = electrode_12`
+- `B2 = electrode_13`
+- `B3 = electrode_14`
+- ...
+- `H12 = electrode_95`
+
+To see a complete mapping of battleship notation to electrode ids, run the
+command `show` without any arguments.
+
+```
+               1       2      3        4       5       6       7       8       9       10      11      12
+       __________________________________________________________________________________________________________
+      |                                                                                                          |
+      |                                                                                                          |
+  A   |      ~ 0 ~   ~ 1 ~   ~ 2 ~   ~ 3 ~   ~ 4 ~   ~ 5 ~   ~ 6 ~   ~ 7 ~   ~ 8 ~   ~ 9 ~   ~ 10 ~  ~ 11 ~      |
+      |                                                                                                          |
+  B   |      ~ 12 ~  ~ 13 ~  ~ 14 ~  ~ 15 ~  ~ 16 ~  ~ 17 ~  ~ 18 ~  ~ 19 ~  ~ 20 ~  ~ 21 ~  ~ 22 ~  ~ 23 ~      |
+      |                                                                                                          |
+  C   |      ~ 24 ~  ~ 25 ~  ~ 26 ~  ~ 27 ~  ~ 28 ~  ~ 29 ~  ~ 30 ~  ~ 31 ~  ~ 32 ~  ~ 33 ~  ~ 34 ~  ~ 35 ~      |
+      |                                                                                                          |
+  D   |      ~ 36 ~  ~ 37 ~  ~ 38 ~  ~ 39 ~  ~ 40 ~  ~ 41 ~  ~ 42 ~  ~ 43 ~  ~ 44 ~  ~ 45 ~  ~ 46 ~  ~ 47 ~      |
+      |                                                                                                          |
+  E   |      ~ 48 ~  ~ 49 ~  ~ 50 ~  ~ 51 ~  ~ 52 ~  ~ 53 ~  ~ 54 ~  ~ 55 ~  ~ 56 ~  ~ 57 ~  ~ 58 ~  ~ 59 ~      |
+      |                                                                                                          |
+  F   |      ~ 60 ~  ~ 61 ~  ~ 62 ~  ~ 63 ~  ~ 64 ~  ~ 65 ~  ~ 66 ~  ~ 67 ~  ~ 68 ~  ~ 69 ~  ~ 70 ~  ~ 71 ~      |
+      |                                                                                                          |
+  G   |      ~ 72 ~  ~ 73 ~  ~ 74 ~  ~ 75 ~  ~ 76 ~  ~ 77 ~  ~ 78 ~  ~ 79 ~  ~ 80 ~  ~ 81 ~  ~ 82 ~  ~ 83 ~      |
+       \                                                                                                         |
+  H     \    ~ 84 ~  ~ 85 ~  ~ 86 ~  ~ 87 ~  ~ 88 ~  ~ 89 ~  ~ 90 ~  ~ 91 ~  ~ 92 ~  ~ 93 ~  ~ 94 ~  ~ 95 ~      |
+         \                                                                                                       |
+          \______________________________________________________________________________________________________|
+```
 
 ### TODO:
 
-- Finish workflow example
 - Settings descriptions
 - Battleship notation
 - Calibration logic

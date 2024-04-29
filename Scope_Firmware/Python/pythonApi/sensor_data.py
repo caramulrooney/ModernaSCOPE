@@ -9,6 +9,7 @@ from uuid import uuid4
 from typing import Optional
 import numpy as np
 from pathlib import Path
+from tempora import parse_timedelta
 
 class DataWritePermissionError(PermissionError):
     """
@@ -36,6 +37,7 @@ class SensorData():
         self.measurement_data_filename = Config.measurement_data_filename
         self.ph_result_filename = Config.ph_result_filename
         self.calibration_map_folder = Config.calibration_map_folder
+        self.max_calibration_time = parse_timedelta(Config.calibration_invalid_time)
 
         if exists(self.calibration_data_filename):
             self.calibration_data = pd.read_csv(
@@ -272,7 +274,7 @@ class SensorData():
         measurement_ts =  measurement_df.index[0]
         relevant_calibration_data = self.calibration_data[
             (self.calibration_data.index < measurement_ts) &
-            (self.calibration_data.index > measurement_ts - constants.MAX_CALIBRATION_TIME) &
+            (self.calibration_data.index > measurement_ts - self.max_calibration_time) &
             (self.calibration_data["is_valid"])
         ]
         return relevant_calibration_data
