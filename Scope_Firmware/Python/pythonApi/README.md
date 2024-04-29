@@ -524,12 +524,77 @@ command `show` without any arguments.
           \______________________________________________________________________________________________________|
 ```
 
-### TODO:
+## Configuration Settings
 
-- Settings descriptions
-- Battleship notation
-- Calibration logic
-- Modifying the code
-  - Settings
-  - Simple functions
-  - editing the code (forks, etc.)
+Some settings in the software, notably the serial port the device is connected
+to and certain file locations, can be modified from the configuration file,
+named `config.json`. The JSON file is structured as a series of key-value pairs
+with the syntax `"key": "value"`. To change a setting, simply replace the value
+and save the file, then re-launch the software. For example, during setup, you
+had to change the `serial_monitor` setting to something like
+`"serial_monitor": "COM7"`.
+
+The available configuration settings are
+
+- `serial_port`: The serial port to attempt to connect to the device on. This
+  will vary from computer to computer and sometimes run to run. See the
+  first-time setup instructions for how to determine which serial port the
+  device is connected on. On Windows, the serial port is usually the word "COM"
+  followed by a number, such as `COM7` or `COM10`.
+- `board_revision`: The version of the printed circuit board (PCB) hardware
+  inside the device, in case the electrode mapping changes from version to
+  version. As of May 2024, the most recent board revision was `2`.
+- `measurement_interval`: Time between successive measurements in seconds. This
+  controls how frequently the `monitor` command is updated, as well as how long
+  it takes to perform repeated measurements and average them together, as in the
+  `measure -n 10` command. The minimum measurement interval is determined by the
+  electronics, so a measurement interval of at least one second is recommended.
+- `voltage_display_filename`: Name of the file to update during use of the
+  `monitor -f` command.
+- `monitor_datasets_folder`: Path to folder in which to store running data
+  points stored during use of the `monitor` command.
+- `calibration_data_filename`: Name of the file in which to store calibration
+  data.
+- `measurement_data_filename`: Name of the file in which to store measured
+  electrode voltage data.
+- `ph_result_filename`: Name of the file in which to store the pH values
+  calculated as the result of the voltage measurements.
+- `calibration_map_folder`: Path to folder in which to generate calibration map
+  files to show which calibration data points were used in the conversion of
+  each pH measurement.
+- `prompt_history_filename`: Name of the file used to keep track of the command
+  history from session to session, which enables use of the up arrow to access
+  previous commands.
+- `calibration_invalid_time`: The amount of time after a calibration is
+  performed during which the calibration is valid. When performing a pH
+  conversion, calibration data taken before this time will not be considered.
+- `timezone`: The time zone in which the measurement and calibration timestamps
+  should be saved. The list of valid timezone names is
+  [here](https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568).
+- `random_data`: For debugging purposes, generate random data instead of reading
+  data from the sensor. This allows the software to be tested without having the
+  physical device plugged in.
+
+The default configuration settings are
+
+```json
+{
+  "serial_port": "COM10",
+  "board_revision": 2,
+  "measurement_interval": 1,
+  "voltage_display_filename": "display/voltage_display.txt",
+  "monitor_datasets_folder": "display/monitor_datasets/",
+  "calibration_data_filename": "sensor_data/calibration_data.csv",
+  "measurement_data_filename": "sensor_data/measurement_data.csv",
+  "ph_result_filename": "sensor_data/ph_result.csv",
+  "calibration_map_folder": "sensor_data/calibration_map/",
+  "prompt_history_filename": "settings/prompt_history.txt",
+  "calibration_invalid_time": "12 hours",
+  "timezone": "US/Eastern",
+  "random_data": false
+}
+```
+
+## Exiting the API
+
+To exit the API, press `Ctrl+C`, or enter the `quit` command.
